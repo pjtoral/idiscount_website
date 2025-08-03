@@ -512,7 +512,7 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'PORTFOLIO',
+              'IDiscount',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
