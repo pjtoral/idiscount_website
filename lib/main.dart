@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:html' as html;
 
 void main() {
   runApp(MyApp());
@@ -34,6 +35,7 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
     'About',
     'Partners',
     'How It Works',
+    'Featured In',
     'Contact',
   ];
 
@@ -152,6 +154,7 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
                 _buildAboutSection(),
                 _buildServicesSection(),
                 _buildPortfolioSection(),
+                _buildFeaturedSection(),
                 _buildContactSection(),
               ],
             ),
@@ -176,32 +179,137 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
       ),
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'IDiscount',
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width > 768 ? 72 : 48,
-                fontWeight: FontWeight.w100,
-                color: Colors.white,
-                letterSpacing: 4,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: _isDesktop ? 150 : 40),
+          child: _isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+        ),
+      ),
+    );
+  }
+
+  bool get _isDesktop => MediaQuery.of(context).size.width > 800;
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        Expanded(child: _buildTextContent(isDesktop: true)),
+        Expanded(child: _buildHeroImage(isDesktop: true)),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildTextContent(isDesktop: false),
+        SizedBox(height: 20),
+        _buildHeroImage(isDesktop: false),
+      ],
+    );
+  }
+
+  Widget _buildTextContent({required bool isDesktop}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment:
+          isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Text(
+          'IDiscount',
+          style: TextStyle(
+            fontSize: isDesktop ? 72 : 48,
+            fontWeight: FontWeight.w100,
+            color: Colors.white,
+            letterSpacing: 4,
+          ),
+          textAlign: isDesktop ? TextAlign.left : TextAlign.center,
+        ),
+        SizedBox(height: 20),
+        Container(width: 100, height: 2, color: Colors.white),
+        SizedBox(height: 30),
+        Text(
+          'Discounts for every student in the Philippines',
+          style: TextStyle(
+            fontSize: isDesktop ? 24 : 18,
+            color: Colors.white70,
+            letterSpacing: 2,
+          ),
+          textAlign: isDesktop ? TextAlign.left : TextAlign.center,
+        ),
+        SizedBox(height: isDesktop ? 50 : 30),
+        _buildDownloadButtons(isDesktop: isDesktop),
+      ],
+    );
+  }
+
+  Widget _buildDownloadButtons({required bool isDesktop}) {
+    return Row(
+      mainAxisAlignment:
+          isDesktop ? MainAxisAlignment.start : MainAxisAlignment.center,
+      children: [
+        _buildDownloadButton(
+          imagePath: 'assets/images/google_play.png',
+          url: 'https://play.google.com/store',
+          height: isDesktop ? 60.0 : 50.0,
+        ),
+        SizedBox(width: isDesktop ? 30 : 20),
+        _buildDownloadButton(
+          imagePath: 'assets/images/apple_store.png',
+          url: 'https://apps.apple.com',
+          height: isDesktop ? 60.0 : 50.0,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDownloadButton({
+    required String imagePath,
+    required String url,
+    required double height,
+  }) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => html.window.open(url, '_blank'),
+        child: Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8,
+                offset: Offset(0, 4),
               ),
-            ),
-            SizedBox(height: 20),
-            Container(width: 100, height: 2, color: Colors.white),
-            SizedBox(height: 30),
-            Text(
-              'Discounts for every student in the Philippines',
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width > 768 ? 24 : 18,
-                color: Colors.white70,
-                letterSpacing: 2,
-              ),
-            ),
-            SizedBox(height: 50),
-            _buildScrollIndicator(),
-          ],
+            ],
+          ),
+          child: Image.asset(imagePath, height: height),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroImage({required bool isDesktop}) {
+    if (isDesktop) {
+      return Center(
+        child: Image.asset(
+          'assets/images/idiscount_mvp.png',
+          fit: BoxFit.contain,
+          height: MediaQuery.of(context).size.height * 0.9,
+        ),
+      );
+    }
+
+    return Flexible(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.3,
+        ),
+        child: Image.asset(
+          'assets/images/idiscount_mvp.png',
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -245,19 +353,102 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
           Container(width: 80, height: 2, color: Colors.black),
           SizedBox(height: 40),
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 800),
-            child: Text(
-              'kjfaksjhaksjhfaksjdhsajkdhaksjdhasjda',
+            constraints: BoxConstraints(maxWidth: 1200),
+            child:
+                MediaQuery.of(context).size.width > 800
+                    ? Row(
+                      children: [
+                        Expanded(child: _buildAboutBox1()),
+                        SizedBox(width: 30),
+                        Expanded(child: _buildAboutBox2()),
+                      ],
+                    )
+                    : Column(
+                      children: [
+                        _buildAboutBox1(),
+                        SizedBox(height: 30),
+                        _buildAboutBox2(),
+                      ],
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutBox1() {
+    return Container(
+      height: 300,
+      padding: EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          "IDiscount was created primarily to offer students from USC discounts with partnered stores. Through strategic partnerships with businesses, iDiscount aims to ease these burdens by making products and services more affordable for the student community.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18,
+            color: Colors.black87,
+            height: 1.8,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAboutBox2() {
+    return Container(
+      height: 300,
+      padding: EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "History & Motto",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+                letterSpacing: 1,
+              ),
+            ),
+            SizedBox(height: 15),
+            Text(
+              "It was first established in 2005 to alleviate the financial challenges faced by every Carolinian. With that goal in mind, it has been actively delivering the same service to the Carolinian community for 20 years now. With USC IDiscount, you can now MAKE YOUR MONEY COUNT.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width > 768 ? 20 : 16,
+                fontSize: 16,
                 color: Colors.black87,
                 height: 1.8,
                 letterSpacing: 0.5,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -283,21 +474,39 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 1000),
             child: SizedBox(
-              height: 200,
+              height: 300,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  _buildServiceCard('Business One', '10% discount churva'),
+                  _buildServiceCard(
+                    'up to 35% discount',
+                    imagePath: 'assets/images/partner1.png',
+                  ),
                   SizedBox(width: 20),
-                  _buildServiceCard('Business Two', '10% discount churva'),
+                  _buildServiceCard(
+                    'up to 15% discount',
+                    imagePath: 'assets/images/partner2.png',
+                  ),
                   SizedBox(width: 20),
-                  _buildServiceCard('Business Three', '10% discount churva'),
+                  _buildServiceCard(
+                    '10% discount',
+                    imagePath: 'assets/images/partner3.png',
+                  ),
                   SizedBox(width: 20),
-                  _buildServiceCard('Business Three', '10% discount churva'),
+                  _buildServiceCard(
+                    '10% discount',
+                    imagePath: 'assets/images/partner4.png',
+                  ),
                   SizedBox(width: 20),
-                  _buildServiceCard('Business Three', '10% discount churva'),
+                  _buildServiceCard(
+                    '5% discount',
+                    imagePath: 'assets/images/partner5.png',
+                  ),
                   SizedBox(width: 20),
-                  _buildServiceCard('Business Three', '10% discount churva'),
+                  _buildServiceCard(
+                    '20% discount',
+                    imagePath: 'assets/images/partner6.png',
+                  ),
                 ],
               ),
             ),
@@ -307,9 +516,10 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildServiceCard(String title, String description) {
+  Widget _buildServiceCard(String description, {String? imagePath}) {
     return Container(
-      padding: EdgeInsets.all(30),
+      width: 200,
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.white24, width: 1),
         borderRadius: BorderRadius.circular(8),
@@ -317,19 +527,51 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w300,
-              color: Colors.white,
-              letterSpacing: 1,
+          if (imagePath != null)
+            Container(
+              height: 200,
+              width: 200,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  imagePath,
+                  height: 100,
+                  width: 120,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 100,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.business,
+                        size: 48,
+                        color: Colors.white54,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 100,
+              width: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade800,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.business, size: 48, color: Colors.white54),
             ),
-          ),
           SizedBox(height: 20),
           Text(
             description,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 14, color: Colors.white70, height: 1.6),
           ),
         ],
@@ -357,17 +599,14 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
           SizedBox(height: 60),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 1000),
-            child: GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: MediaQuery.of(context).size.width > 768 ? 2 : 1,
-              childAspectRatio: 1.5,
-              mainAxisSpacing: 30,
-              crossAxisSpacing: 30,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildPortfolioItem('Project One'),
-                _buildPortfolioItem('Project Two'),
-                _buildPortfolioItem('Project Three'),
-                _buildPortfolioItem('Project Four'),
+                _buildPortfolioItem(imagePath: 'assets/images/feature1.png'),
+                SizedBox(width: 20),
+                _buildPortfolioItem(imagePath: 'assets/images/feature2.png'),
+                SizedBox(width: 20),
+                _buildPortfolioItem(imagePath: 'assets/images/feature3.png'),
               ],
             ),
           ),
@@ -376,32 +615,150 @@ class _OnePageState extends State<OnePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPortfolioItem(String title) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+  Widget _buildPortfolioItem({String? imagePath}) {
+    return Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300, width: 2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (imagePath != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 300,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.photo_size_select_actual_outlined,
+                        size: 48,
+                        color: Colors.grey.shade600,
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.photo_size_select_actual_outlined,
+                  size: 48,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildFeaturedSection() {
+    return Container(
+      height: MediaQuery.of(context).size.height,
+      color: Colors.grey.shade100,
+      padding: EdgeInsets.symmetric(horizontal: 40),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.photo_size_select_actual_outlined,
-            size: 48,
-            color: Colors.grey.shade600,
-          ),
-          SizedBox(height: 20),
           Text(
-            title,
+            'Featured in',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: MediaQuery.of(context).size.width > 768 ? 48 : 36,
               fontWeight: FontWeight.w300,
-              color: Colors.black87,
-              letterSpacing: 1,
+              color: Colors.black,
+              letterSpacing: 3,
+            ),
+          ),
+          SizedBox(height: 60),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 1000),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildFeaturedItem(imagePath: 'assets/images/fi1.jpg'),
+                SizedBox(width: 20),
+                _buildFeaturedItem(imagePath: 'assets/images/fi2.jpg'),
+                SizedBox(width: 20),
+                _buildFeaturedItem(imagePath: 'assets/images/fi3.jpg'),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturedItem({String? imagePath}) {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (imagePath != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  imagePath,
+                  height: 120,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.photo_size_select_actual_outlined,
+                        size: 48,
+                        color: Colors.grey.shade600,
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.photo_size_select_actual_outlined,
+                  size: 48,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
