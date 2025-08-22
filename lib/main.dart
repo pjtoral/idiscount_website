@@ -9,7 +9,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'One Page Website',
+      title: 'IDiscount Philippines',
       theme: ThemeData(primarySwatch: Colors.grey, fontFamily: 'Inter'),
       home: OnePage(),
       debugShowCheckedModeBanner: false,
