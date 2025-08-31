@@ -45,19 +45,19 @@ class HowItWorks extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
                         HowItWorksItem(
-                          imagePath: 'assets/images/feature1.png',
+                          imagePath: 'assets/images/hiw1.webp',
                           title: 'Fast & Easy',
                           subtext: 'Get things done quickly with our platform.',
                         ),
                         SizedBox(height: 20),
                         HowItWorksItem(
-                          imagePath: 'assets/images/feature2.png',
+                          imagePath: 'assets/images/hiw2.webp',
                           title: 'Reliable',
                           subtext: 'Always dependable for your needs.',
                         ),
                         SizedBox(height: 20),
                         HowItWorksItem(
-                          imagePath: 'assets/images/feature3.png',
+                          imagePath: 'assets/images/hiw3.webp',
                           title: 'Secure',
                           subtext: 'Your data is safe with us.',
                         ),
@@ -69,19 +69,19 @@ class HowItWorks extends StatelessWidget {
                       runSpacing: 20,
                       children: const [
                         HowItWorksItem(
-                          imagePath: 'assets/images/feature1.png',
-                          title: 'Fast & Easy',
-                          subtext: 'Get things done quickly with our platform.',
+                          imagePath: 'assets/images/hiw1.webp',
+                          title: 'See discounts from nearby businesses.',
+                          subtext: '',
                         ),
                         HowItWorksItem(
-                          imagePath: 'assets/images/feature2.png',
-                          title: 'Reliable',
-                          subtext: 'Always dependable for your needs.',
+                          imagePath: 'assets/images/hiw2.webp',
+                          title: 'Manually search businesses.',
+                          subtext: '',
                         ),
                         HowItWorksItem(
-                          imagePath: 'assets/images/feature3.png',
-                          title: 'Secure',
-                          subtext: 'Your data is safe with us.',
+                          imagePath: 'assets/images/hiw3.webp',
+                          title: 'Filter discounts by category.',
+                          subtext: '',
                         ),
                       ],
                     ),

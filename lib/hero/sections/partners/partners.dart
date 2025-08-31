@@ -16,12 +16,12 @@ class PartnersSection extends StatelessWidget {
     final isDesktop = screenWidth > 425;
 
     final partners = const [
-      PartnerCard(imagePath: 'assets/images/partner1.png'),
-      PartnerCard(imagePath: 'assets/images/partner2.png'),
-      PartnerCard(imagePath: 'assets/images/partner3.png'),
-      PartnerCard(imagePath: 'assets/images/partner4.png'),
-      PartnerCard(imagePath: 'assets/images/partner5.png'),
-      PartnerCard(imagePath: 'assets/images/partner6.png'),
+      PartnerCard(imagePath: 'assets/images/partner1.webp'),
+      PartnerCard(imagePath: 'assets/images/partner2.webp'),
+      PartnerCard(imagePath: 'assets/images/partner3.webp'),
+      PartnerCard(imagePath: 'assets/images/partner4.webp'),
+      PartnerCard(imagePath: 'assets/images/partner5.webp'),
+      PartnerCard(imagePath: 'assets/images/partner6.webp'),
     ];
 
     final carouselHeight =

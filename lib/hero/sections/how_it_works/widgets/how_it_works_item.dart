@@ -44,7 +44,7 @@ class HowItWorksItem extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Image.asset(imagePath, width: 80, height: 80, fit: BoxFit.contain),
+          Image.asset(imagePath, width: 340, height: 340, fit: BoxFit.contain),
           const SizedBox(height: 16),
           Text(
             title,
