@@ -268,13 +268,13 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
           isDesktop ? MainAxisAlignment.start : MainAxisAlignment.center,
       children: [
         _buildDownloadButton(
-          imagePath: 'assets/images/google_play.png',
+          imagePath: 'assets/images/google_play.webp',
           url: 'https://play.google.com/store',
           height: isDesktop ? 60.0 : 50.0,
         ),
         SizedBox(width: isDesktop ? 30 : 20),
         _buildDownloadButton(
-          imagePath: 'assets/images/apple_store.png',
+          imagePath: 'assets/images/apple_store.webp',
           url: 'https://apps.apple.com',
           height: isDesktop ? 60.0 : 50.0,
         ),
@@ -314,7 +314,7 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
     if (isDesktop) {
       return Center(
         child: Image.asset(
-          'assets/images/idiscount_mvp.png',
+          'assets/images/idiscount_mvp.webp',
           fit: BoxFit.contain,
           height: MediaQuery.of(context).size.height * 0.9,
         ),
@@ -573,11 +573,11 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildFeaturedItem(imagePath: 'assets/images/fi1.jpg'),
+              _buildFeaturedItem(imagePath: 'assets/images/fi1.webp'),
               SizedBox(width: 20),
-              _buildFeaturedItem(imagePath: 'assets/images/fi2.jpg'),
+              _buildFeaturedItem(imagePath: 'assets/images/fi2.webp'),
               SizedBox(width: 20),
-              _buildFeaturedItem(imagePath: 'assets/images/fi3.jpg'),
+              _buildFeaturedItem(imagePath: 'assets/images/fi3.webp'),
             ],
           ),
         ],
