@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:idiscount_website/hero/sections/about/about.dart';
 // ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
@@ -7,6 +8,8 @@ import 'package:idiscount_website/hero/sections/how_it_works/how_it_works.dart';
 import 'package:idiscount_website/hero/sections/partners/partners.dart';
 
 class HeroPage extends StatefulWidget {
+  const HeroPage({Key? key}) : super(key: key);
+
   @override
   _HeroPageState createState() => _HeroPageState();
 }
@@ -18,6 +21,9 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
 
   int _currentSection = 0;
   bool _isAutoScrolling = false;
+  late double _heroImageHeight;
+  late double _heroMobileImageHeight;
+  late double _heroSectionHeight;
 
   final List<String> _sectionTitles = [
     'Hero',
@@ -35,6 +41,15 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _heroImageHeight = MediaQuery.of(context).size.height * 0.9;
+          _heroMobileImageHeight = MediaQuery.of(context).size.height * 0.3;
+          _heroSectionHeight = MediaQuery.of(context).size.height;
+        });
+      }
+    });
     _scrollController = ScrollController();
     _fadeController = AnimationController(
       duration: Duration(milliseconds: 800),
@@ -138,8 +153,9 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
     required Widget child,
     required Color backgroundColor,
   }) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
-      height: MediaQuery.of(context).size.height,
+      constraints: BoxConstraints(minHeight: screenHeight),
       width: double.infinity,
       color: backgroundColor,
       padding: EdgeInsets.symmetric(horizontal: _sectionHorizontalPadding),
@@ -155,7 +171,7 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -177,6 +193,57 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
           ),
           _buildNavigationDots(),
           _buildFloatingNav(),
+          _buildAuthButtons(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthButtons() {
+    return Positioned(
+      top: 50,
+      right: 40,
+      child: Row(
+        children: [
+          OutlinedButton(
+            onPressed: () => context.go('/login'),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFFFD54F), width: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Login',
+              style: TextStyle(
+                color: Color(0xFFFFD54F),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton(
+            onPressed: () => context.go('/signup'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFFFD54F),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Register',
+              style: TextStyle(
+                color: Color(0xFF2D5016),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -184,13 +251,13 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
 
   Widget _buildHeroSection() {
     return Container(
-      height: MediaQuery.of(context).size.height,
+      height: _heroSectionHeight,
       width: double.infinity,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black, Colors.grey.shade900],
+          colors: [Color(0xFFF9FBF7), Color(0xFFFFFFFF)],
         ),
       ),
       child: FadeTransition(
@@ -238,21 +305,22 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
           'IDiscount',
           style: TextStyle(
             fontSize: isDesktop ? 72 : 48,
-            fontWeight: FontWeight.w100,
-            color: Colors.white,
-            letterSpacing: 4,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF2D5016),
+            letterSpacing: 2,
           ),
           textAlign: isDesktop ? TextAlign.left : TextAlign.center,
         ),
         SizedBox(height: 20),
-        Container(width: 100, height: 2, color: Colors.white),
+        Container(width: 100, height: 2, color: Color(0xFFD4AF37)),
         SizedBox(height: 30),
         Text(
           'Discounts for every student in the Philippines',
           style: TextStyle(
             fontSize: isDesktop ? 24 : 18,
-            color: Colors.white70,
-            letterSpacing: 2,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFF2B2B2B),
+            letterSpacing: 1,
           ),
           textAlign: isDesktop ? TextAlign.left : TextAlign.center,
         ),
@@ -294,7 +362,7 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
         child: Container(
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(0xFFFFD54F),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -311,25 +379,59 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
   }
 
   Widget _buildHeroImage({required bool isDesktop}) {
+    final String imagePath = 'assets/images/idiscount_mvp.webp';
+    final String fallbackPath = 'assets/images/idiscount_mvp.png';
+    final imageHeight = isDesktop ? _heroImageHeight : _heroMobileImageHeight;
+
     if (isDesktop) {
-      return Center(
+      return SizedBox(
+        height: imageHeight,
+        width: imageHeight * 0.9,
         child: Image.asset(
-          'assets/images/idiscount_mvp.webp',
+          imagePath,
           fit: BoxFit.contain,
-          height: MediaQuery.of(context).size.height * 0.9,
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset(
+              fallbackPath,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: imageHeight,
+                  child: Icon(
+                    Icons.image_not_supported,
+                    size: 100,
+                    color: Colors.white30,
+                  ),
+                );
+              },
+            );
+          },
         ),
       );
     }
 
-    return Flexible(
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.3,
-        ),
-        child: Image.asset(
-          'assets/images/idiscount_mvp.png',
-          fit: BoxFit.contain,
-        ),
+    return SizedBox(
+      height: imageHeight,
+      width: imageHeight * 0.8,
+      child: Image.asset(
+        imagePath,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            fallbackPath,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: imageHeight,
+                child: Icon(
+                  Icons.image_not_supported,
+                  size: 50,
+                  color: Colors.white30,
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -353,7 +455,7 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
 
   Widget _buildServicesSection() {
     return _buildSectionContainer(
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: Color(0xFF558B2F),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -361,9 +463,9 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
             'Partners',
             style: TextStyle(
               fontSize: MediaQuery.of(context).size.width > 768 ? 48 : 36,
-              fontWeight: FontWeight.w300,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
-              letterSpacing: 3,
+              letterSpacing: 1.5,
             ),
           ),
           SizedBox(height: 60),
@@ -465,7 +567,12 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 14, color: Colors.white70, height: 1.6),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+              height: 1.6,
+            ),
           ),
         ],
       ),
@@ -556,7 +663,7 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
 
   Widget _buildFeaturedSection() {
     return _buildSectionContainer(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Color(0xFFFFF8E1),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -564,9 +671,9 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
             'Featured in',
             style: TextStyle(
               fontSize: MediaQuery.of(context).size.width > 768 ? 48 : 36,
-              fontWeight: FontWeight.w300,
-              color: Colors.black,
-              letterSpacing: 3,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF2D5016),
+              letterSpacing: 1.5,
             ),
           ),
           SizedBox(height: 60),
@@ -648,7 +755,7 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
 
   Widget _buildContactSection() {
     return _buildSectionContainer(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF2D5016),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -656,13 +763,13 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
             'Contact',
             style: TextStyle(
               fontSize: MediaQuery.of(context).size.width > 768 ? 48 : 36,
-              fontWeight: FontWeight.w300,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
-              letterSpacing: 3,
+              letterSpacing: 1.5,
             ),
           ),
           SizedBox(height: 40),
-          Container(width: 80, height: 2, color: Colors.white),
+          Container(width: 80, height: 2, color: Color(0xFFFFD54F)),
           SizedBox(height: 60),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 600),
@@ -672,7 +779,8 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
                   'Let\'s work together',
                   style: TextStyle(
                     fontSize: 24,
-                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFFFD54F),
                     letterSpacing: 1,
                   ),
                 ),
@@ -699,7 +807,8 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.white54,
+            color: Color(0xFFFFD54F).withOpacity(0.8),
+            fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
         ),
@@ -730,8 +839,14 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
               height: 12,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _currentSection == index ? Colors.white : Colors.white30,
-                border: Border.all(color: Colors.white30, width: 1),
+                color:
+                    _currentSection == index
+                        ? Color(0xFFFFD54F)
+                        : Colors.white30,
+                border: Border.all(
+                  color: Color(0xFFFFD54F).withOpacity(0.5),
+                  width: 1,
+                ),
               ),
             ),
           );
@@ -746,27 +861,43 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
         top: 50,
         left: 20,
         right: 20,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'IDiscount',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w300,
-                letterSpacing: 2,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.92),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE7EFE2)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 12,
+                offset: Offset(0, 6),
               ),
-            ),
-            Text(
-              '${_currentSection + 1}/${_sectionTitles.length}',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                letterSpacing: 1,
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'IDiscount',
+                style: TextStyle(
+                  color: Color(0xFF2D5016),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                ),
               ),
-            ),
-          ],
+              Text(
+                '${_currentSection + 1}/${_sectionTitles.length}',
+                style: const TextStyle(
+                  color: Color(0xFF2D5016),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -779,9 +910,12 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
           decoration: BoxDecoration(
-            color: Colors.black54,
+            color: Color(0xFF2D5016).withOpacity(0.95),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white24, width: 1),
+            border: Border.all(
+              color: Color(0xFFFFD54F).withOpacity(0.6),
+              width: 2,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -795,11 +929,11 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
                     style: TextStyle(
                       color:
                           _currentSection == index
-                              ? Colors.white
-                              : Colors.white54,
+                              ? Color(0xFFFFD54F)
+                              : Colors.white.withOpacity(0.9),
                       fontSize: 12,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ),

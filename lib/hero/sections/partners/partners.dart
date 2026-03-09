@@ -27,32 +27,41 @@ class PartnersSection extends StatelessWidget {
     final carouselHeight =
         isDesktop ? screenHeight * 0.35 : screenHeight * 0.30;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: screenHeight * 0.1),
-        Text(
-          'Partners',
-          style: TextStyle(
-            fontSize: isDesktop ? 48 : 32,
-            fontWeight: FontWeight.w300,
-            color: Colors.white,
-            letterSpacing: 3,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F7EF),
+        border: Border.symmetric(
+          horizontal: BorderSide(color: const Color(0xFFE1EBDD)),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          SizedBox(height: screenHeight * 0.1),
+          Text(
+            'Partners',
+            style: TextStyle(
+              fontSize: isDesktop ? 48 : 32,
+              fontWeight: FontWeight.w300,
+              color: const Color(0xFF2D5016),
+              letterSpacing: 3,
+            ),
           ),
-        ),
-        const SizedBox(height: 30),
+          const SizedBox(height: 30),
 
-        SizedBox(
-          height: carouselHeight,
-          child: _AutoScrollCarousel(children: partners, reverse: false),
-        ),
+          SizedBox(
+            height: carouselHeight,
+            child: _AutoScrollCarousel(children: partners, reverse: false),
+          ),
 
-        SizedBox(
-          height: carouselHeight,
-          child: _AutoScrollCarousel(children: partners, reverse: true),
-        ),
-        SizedBox(height: screenHeight * 0.1),
-      ],
+          SizedBox(
+            height: carouselHeight,
+            child: _AutoScrollCarousel(children: partners, reverse: true),
+          ),
+          SizedBox(height: screenHeight * 0.1),
+        ],
+      ),
     );
   }
 }

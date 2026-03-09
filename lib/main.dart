@@ -1,75 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Import your pages
+// pages
 import 'package:idiscount_website/hero/hero_page.dart';
 import 'package:idiscount_website/security_policy/policy.dart';
 import 'package:idiscount_website/terms_and_condition/terms.dart';
+import 'package:idiscount_website/pages/login_page.dart';
+import 'package:idiscount_website/pages/signup_page.dart';
+import 'package:idiscount_website/pages/email_verification_page.dart';
+import 'package:idiscount_website/pages/register_page.dart';
+import 'package:idiscount_website/pages/dashboard_page.dart';
 
-void main() {
-  // Enable clean URLs for Flutter Web
+// theme
+import 'package:idiscount_website/theme/app_theme.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://yfcbtbivhuslzxzqcnve.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmY2J0Yml2aHVzbHp4enFjbnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNDcxOTksImV4cCI6MjA4NDgyMzE5OX0.IqtQb9Ci0wxy3gvoIppBsYJHzKaCa4sp2GWfCP1YBAU',
+  );
+
   setUrlStrategy(PathUrlStrategy());
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final GoRouter router = GoRouter(
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const HeroPage()),
+        GoRoute(
+          path: '/policy',
+          builder: (context, state) => const PolicyPage(),
+        ),
+        GoRoute(
+          path: '/terms_and_condition',
+          builder: (context, state) => const TermsPage(),
+        ),
+        GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+        GoRoute(
+          path: '/signup',
+          builder: (context, state) => const SignupPage(),
+        ),
+        GoRoute(
+          path: '/email-verification',
+          builder: (context, state) => const EmailVerificationPage(),
+        ),
+        GoRoute(
+          path: '/register',
+          builder: (context, state) {
+            final user = Supabase.instance.client.auth.currentUser;
+            if (user == null || user.emailConfirmedAt == null) {
+              return const EmailVerificationPage();
+            }
+            return const RegisterPage();
+          },
+        ),
+        GoRoute(
+          path: '/dashboard',
+          builder: (context, state) {
+            final user = Supabase.instance.client.auth.currentUser;
+            return DashboardPage(userEmail: user?.email ?? 'user@example.com');
+          },
+        ),
+      ],
+    );
+
+    return MaterialApp.router(
       title: 'IDiscount Philippines',
-      theme: ThemeData(
-        fontFamily: 'Inter',
-
-        // ✅ Backgrounds
-        scaffoldBackgroundColor: Colors.white, // Page background always white
-        // ✅ AppBar theme
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white, // AppBar background white
-          elevation: 0, // remove shadow for flat website look
-          iconTheme: IconThemeData(color: Colors.black), // icons black
-          titleTextStyle: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-
-        // ✅ Color scheme override (so buttons/texts stay dark)
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.grey,
-        ).copyWith(
-          background: Colors.white,
-          onPrimary: Colors.black,
-          onSurface: Colors.black,
-        ),
-      ),
+      theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-
-      // Handles all routes (good for web deep linking)
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/':
-            return MaterialPageRoute(builder: (_) => HeroPage());
-          case '/policy':
-            return MaterialPageRoute(builder: (_) => const PolicyPage());
-          case '/terms_and_condition':
-            return MaterialPageRoute(builder: (_) => const TermsPage());
-          default:
-            return MaterialPageRoute(
-              builder:
-                  (_) => const Scaffold(
-                    body: Center(
-                      child: Text(
-                        "404 - Page Not Found",
-                        style: TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-            );
-        }
-      },
+      routerConfig: router,
     );
   }
 }
