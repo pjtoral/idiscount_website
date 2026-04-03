@@ -38,6 +38,7 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
   supabase_flutter: ^2.2.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

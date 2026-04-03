@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -63,20 +64,20 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => _isLoading = true);
 
     try {
+      final email = _emailController.text.trim();
       await _authService.signUp(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
-        emailRedirectTo: 'http://localhost:8080/email-verification',
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Verification email sent! Please check your inbox.'),
+            content: Text('Verification code sent! Please check your inbox.'),
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/email-verification');
+        context.go('/email-verification?email=${Uri.encodeComponent(email)}');
       }
     } catch (e) {
       if (e is AuthException && e.statusCode == '429') {
@@ -85,7 +86,12 @@ class _SignupPageState extends State<SignupPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Signup failed: ${e.toString()}'),
+            content: Text(
+              AppErrorService.toMessage(
+                e,
+                fallback: 'Signup failed. Please try again.',
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );

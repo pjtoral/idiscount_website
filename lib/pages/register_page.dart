@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:idiscount_website/models/business_category.dart';
+import 'package:idiscount_website/pages/widgets/register_sections.dart';
+import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
 import 'package:idiscount_website/services/business_service.dart';
+import 'package:idiscount_website/viewmodels/register_form_view_model.dart';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
@@ -16,6 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _businessService = BusinessService();
+  final _formViewModel = RegisterFormViewModel();
   double _progress = 0.0;
 
   final _businessNameController = TextEditingController();
@@ -27,10 +32,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final _discountAmountController = TextEditingController();
   final _latitudeController = TextEditingController();
   final _longitudeController = TextEditingController();
+  final _cityMunicipalityController = TextEditingController();
+  final _provinceController = TextEditingController();
   final _locationController = TextEditingController();
 
   String? _selectedDiscountType = 'percentage';
-  String? _selectedDiscountFrequency = 'everyday';
   bool _offerToAllSchools = true;
   bool _isOngoing = false;
   DateTime? _startDate;
@@ -39,6 +45,7 @@ class _RegisterPageState extends State<RegisterPage> {
   List<String> _selectedSchools = [];
   String? _selectedPhotoFileName;
   Uint8List? _selectedPhotoData;
+  String? _selectedCategory;
 
   @override
   void initState() {
@@ -75,6 +82,8 @@ class _RegisterPageState extends State<RegisterPage> {
     _discountAmountController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
+    _cityMunicipalityController.dispose();
+    _provinceController.dispose();
     _locationController.dispose();
     super.dispose();
   }
@@ -85,11 +94,11 @@ class _RegisterPageState extends State<RegisterPage> {
       if (draft != null && mounted) {
         setState(() {
           _businessNameController.text = draft['business_name'] ?? '';
+          _selectedCategory = BusinessCategory.normalizeKey(draft['category']);
           _locations = List<String>.from(draft['locations'] ?? []);
           _selectedDiscountType = draft['discount_type'];
           _discountAmountController.text =
               draft['discount_amount']?.toString() ?? '';
-          _selectedDiscountFrequency = draft['discount_frequency'];
           _offerToAllSchools = draft['offer_to_all_schools'] ?? true;
           _selectedSchools = List<String>.from(draft['selected_schools'] ?? []);
           if (draft['start_date'] != null) {
@@ -104,6 +113,8 @@ class _RegisterPageState extends State<RegisterPage> {
           _instagramController.text = draft['instagram'] ?? '';
           _tiktokController.text = draft['tiktok'] ?? '';
           _xController.text = draft['x'] ?? '';
+          _cityMunicipalityController.text = draft['city_municipality'] ?? '';
+          _provinceController.text = draft['province'] ?? '';
           _latitudeController.text = draft['latitude']?.toString() ?? '';
           _longitudeController.text = draft['longitude']?.toString() ?? '';
         });
@@ -120,15 +131,17 @@ class _RegisterPageState extends State<RegisterPage> {
     );
 
     try {
+      final selectedCategory = _selectedCategory;
       await _businessService.saveDraft(
         businessName: _businessNameController.text.trim(),
+        categoryCode: BusinessCategory.codeForKey(selectedCategory),
+        category: selectedCategory,
         locations: _locations,
         discountType: _selectedDiscountType ?? 'percentage',
         discountAmount:
             _discountAmountController.text.isNotEmpty
                 ? double.parse(_discountAmountController.text)
                 : 0.0,
-        discountFrequency: _selectedDiscountFrequency ?? 'everyday',
         offerToAllSchools: _offerToAllSchools,
         selectedSchools: _selectedSchools,
         startDate: _startDate ?? DateTime.now(),
@@ -151,6 +164,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 ? _tiktokController.text.trim()
                 : null,
         x: _xController.text.isNotEmpty ? _xController.text.trim() : null,
+        cityMunicipality:
+            _cityMunicipalityController.text.isNotEmpty
+                ? _cityMunicipalityController.text.trim()
+                : null,
+        province:
+            _provinceController.text.isNotEmpty
+                ? _provinceController.text.trim()
+                : null,
         latitude:
             _latitudeController.text.isNotEmpty
                 ? double.tryParse(_latitudeController.text)
@@ -175,7 +196,12 @@ class _RegisterPageState extends State<RegisterPage> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save draft: ${e.toString()}'),
+            content: Text(
+              AppErrorService.toMessage(
+                e,
+                fallback: 'Failed to save draft. Please try again.',
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -184,19 +210,16 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _updateProgress() {
-    int filledFields = 0;
-    int totalFields = 7;
-
-    if (_businessNameController.text.isNotEmpty) filledFields++;
-    if (_locations.isNotEmpty) filledFields++;
-    if (_selectedDiscountType != null) filledFields++;
-    if (_discountAmountController.text.isNotEmpty) filledFields++;
-    if (_selectedDiscountFrequency != null) filledFields++;
-    if (_startDate != null) filledFields++;
-    if (_isOngoing || _endDate != null) filledFields++;
-
     setState(() {
-      _progress = filledFields / totalFields;
+      _progress = _formViewModel.computeProgress(
+        businessName: _businessNameController.text,
+        locations: _locations,
+        discountType: _selectedDiscountType,
+        discountAmount: _discountAmountController.text,
+        startDate: _startDate,
+        endDate: _endDate,
+        isOngoing: _isOngoing,
+      );
     });
   }
 
@@ -277,27 +300,21 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
-      return;
-    }
+    final validationMessage = _formViewModel.validateBeforeSubmit(
+      formValid: _formKey.currentState!.validate(),
+      locations: _locations,
+      selectedCategory: _selectedCategory,
+      selectedPhotoFileName: _selectedPhotoFileName,
+      selectedPhotoData: _selectedPhotoData,
+      startDate: _startDate,
+      endDate: _endDate,
+      isOngoing: _isOngoing,
+    );
 
-    if (_locations.isEmpty) {
+    if (validationMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one location'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(validationMessage), backgroundColor: Colors.red),
       );
-      return;
-    }
-
-    if (_selectedPhotoData == null || _selectedPhotoFileName == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please upload a photo')));
       return;
     }
 
@@ -308,17 +325,32 @@ class _RegisterPageState extends State<RegisterPage> {
     );
 
     try {
-      await _businessService.submitBusinessRegistration(
-        businessName: _businessNameController.text.trim(),
-        locations: _locations,
-        discountType: _selectedDiscountType ?? 'percentage',
-        discountAmount: double.parse(_discountAmountController.text),
-        discountFrequency: _selectedDiscountFrequency ?? 'everyday',
-        offerToAllSchools: _offerToAllSchools,
-        selectedSchools: _selectedSchools,
+      // Get current user ID
+      final authUserId = _authService.getCurrentUserId();
+      if (authUserId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Generate business UID
+      final businessUid = DateTime.now().millisecondsSinceEpoch;
+      final locationUid = businessUid * 1000; // Simple location UID generation
+
+      // Build validity date (using first location for demo, adjust as needed)
+      final validityString = _formViewModel.buildValidityString(
         startDate: _startDate!,
         endDate: _endDate,
         isOngoing: _isOngoing,
+      );
+
+      // Call Edge Function to register business
+      // Photo handling: for now, just pass filename; integrate storage later if needed
+      final selectedCategory = _selectedCategory!;
+      await _businessService.registerBusiness(
+        authUserId: authUserId,
+        uid: businessUid,
+        companyName: _businessNameController.text.trim(),
+        categoryCode: BusinessCategory.codeForKey(selectedCategory),
+        category: selectedCategory,
         website:
             _websiteController.text.isNotEmpty
                 ? _websiteController.text.trim()
@@ -336,6 +368,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 ? _tiktokController.text.trim()
                 : null,
         x: _xController.text.isNotEmpty ? _xController.text.trim() : null,
+        groupName:
+            _offerToAllSchools ? 'All Schools' : _selectedSchools.join(', '),
+        validity: validityString,
+        businessImage:
+            _selectedPhotoFileName, // Store filename; implement storage later
+        locationUid: locationUid,
+        fullAddress: _locations[0], // Using first location; adjust for multiple
+        cityMunicipality:
+            _cityMunicipalityController.text.isNotEmpty
+                ? _cityMunicipalityController.text.trim()
+                : '',
+        province:
+            _provinceController.text.isNotEmpty
+                ? _provinceController.text.trim()
+                : '',
         latitude:
             _latitudeController.text.isNotEmpty
                 ? double.tryParse(_latitudeController.text)
@@ -344,8 +391,6 @@ class _RegisterPageState extends State<RegisterPage> {
             _longitudeController.text.isNotEmpty
                 ? double.tryParse(_longitudeController.text)
                 : null,
-        photoFileName: _selectedPhotoFileName,
-        photoData: _selectedPhotoData,
       );
 
       if (mounted) {
@@ -357,8 +402,8 @@ class _RegisterPageState extends State<RegisterPage> {
               (context) => AlertDialog(
                 title: const Text('Success!'),
                 content: const Text(
-                  'Your business registration has been submitted for review. '
-                  'We will contact you via email within 24-48 hours.',
+                  'Your business has been registered and linked to your account. '
+                  'You can now access your business dashboard.',
                 ),
                 actions: [
                   TextButton(
@@ -377,7 +422,13 @@ class _RegisterPageState extends State<RegisterPage> {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              AppErrorService.toMessage(
+                e,
+                fallback:
+                    'Registration failed. Please check your details and try again.',
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -491,66 +542,167 @@ class _RegisterPageState extends State<RegisterPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildSectionHeader(
-                                    'Basic Business Information',
+                                  const RegisterSectionHeader(
+                                    title: 'Basic Business Information',
                                   ),
                                   const SizedBox(height: 16),
                                   _buildBusinessNameField(),
                                   const SizedBox(height: 20),
-                                  _buildBusinessPhotoField(),
-                                  const SizedBox(height: 32),
-
-                                  _buildSectionHeader('Location Information'),
-                                  const SizedBox(height: 16),
-                                  _buildLocationField(),
+                                  _buildCategoryFields(),
                                   const SizedBox(height: 20),
-                                  _buildLatitudeLongitudeFields(),
+                                  RegisterBusinessPhotoField(
+                                    selectedPhotoFileName:
+                                        _selectedPhotoFileName,
+                                    hasPhotoData: _selectedPhotoData != null,
+                                    onPickPhoto: _pickPhotoFile,
+                                    onRemovePhoto: () {
+                                      setState(() {
+                                        _selectedPhotoFileName = null;
+                                        _selectedPhotoData = null;
+                                      });
+                                    },
+                                  ),
                                   const SizedBox(height: 32),
 
-                                  _buildSectionHeader('Discount Details'),
-                                  const SizedBox(height: 16),
-                                  _buildDiscountTypeField(),
-                                  const SizedBox(height: 20),
-                                  _buildDiscountAmountField(),
-                                  const SizedBox(height: 20),
-                                  _buildDiscountFrequencyField(),
-                                  const SizedBox(height: 32),
-
-                                  _buildSectionHeader('Partnership Details'),
-                                  const SizedBox(height: 16),
-                                  _buildSchoolPartnershipField(),
-                                  const SizedBox(height: 32),
-
-                                  _buildSectionHeader(
-                                    'Social Media & Online Presence',
+                                  const RegisterSectionHeader(
+                                    title: 'Location Information',
                                   ),
                                   const SizedBox(height: 16),
-                                  _buildSocialMediaFields(),
+                                  RegisterLocationsField(
+                                    locationController: _locationController,
+                                    locations: _locations,
+                                    onSubmitted: (value) {
+                                      if (value.trim().isNotEmpty) {
+                                        setState(() {
+                                          _locations.add(value.trim());
+                                          _locationController.clear();
+                                        });
+                                        _updateProgress();
+                                      }
+                                    },
+                                    onAdd: () {
+                                      final address =
+                                          _locationController.text.trim();
+                                      if (address.isNotEmpty) {
+                                        setState(() {
+                                          _locations.add(address);
+                                          _locationController.clear();
+                                        });
+                                        _updateProgress();
+                                      }
+                                    },
+                                    onRemove: (index) {
+                                      setState(
+                                        () => _locations.removeAt(index),
+                                      );
+                                      _updateProgress();
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+                                  RegisterCityProvinceFields(
+                                    cityMunicipalityController:
+                                        _cityMunicipalityController,
+                                    provinceController: _provinceController,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  RegisterCoordinatesFields(
+                                    latitudeController: _latitudeController,
+                                    longitudeController: _longitudeController,
+                                  ),
                                   const SizedBox(height: 32),
 
-                                  _buildSectionHeader('Validity Period'),
+                                  const RegisterSectionHeader(
+                                    title: 'Discount Details',
+                                  ),
                                   const SizedBox(height: 16),
-                                  _buildValidityField(),
+                                  RegisterDiscountTypeField(
+                                    selectedDiscountType: _selectedDiscountType,
+                                    onChanged:
+                                        (value) => setState(
+                                          () => _selectedDiscountType = value,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  RegisterDiscountAmountField(
+                                    controller: _discountAmountController,
+                                    selectedDiscountType: _selectedDiscountType,
+                                    onChanged: (_) => _updateProgress(),
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  const RegisterSectionHeader(
+                                    title: 'Partnership Details',
+                                  ),
+                                  const SizedBox(height: 16),
+                                  RegisterSchoolPartnershipField(
+                                    offerToAllSchools: _offerToAllSchools,
+                                    onChanged: (value) {
+                                      setState(
+                                        () =>
+                                            _offerToAllSchools = value ?? true,
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  const RegisterSectionHeader(
+                                    title: 'Social Media & Online Presence',
+                                  ),
+                                  const SizedBox(height: 16),
+                                  RegisterSocialMediaFields(
+                                    websiteController: _websiteController,
+                                    facebookController: _facebookController,
+                                    instagramController: _instagramController,
+                                    tiktokController: _tiktokController,
+                                    xController: _xController,
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  const RegisterSectionHeader(
+                                    title: 'Validity Period',
+                                  ),
+                                  const SizedBox(height: 16),
+                                  RegisterValidityField(
+                                    isOngoing: _isOngoing,
+                                    startDate: _startDate,
+                                    endDate: _endDate,
+                                    onToggleOngoing: (value) {
+                                      setState(
+                                        () => _isOngoing = value ?? false,
+                                      );
+                                      _updateProgress();
+                                    },
+                                    onTapStartDate: () async {
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime.now(),
+                                        lastDate: DateTime(2100),
+                                      );
+                                      if (date != null) {
+                                        setState(() => _startDate = date);
+                                        _updateProgress();
+                                      }
+                                    },
+                                    onTapEndDate: () async {
+                                      final date = await showDatePicker(
+                                        context: context,
+                                        initialDate:
+                                            _startDate ?? DateTime.now(),
+                                        firstDate: _startDate ?? DateTime.now(),
+                                        lastDate: DateTime(2100),
+                                      );
+                                      if (date != null) {
+                                        setState(() => _endDate = date);
+                                        _updateProgress();
+                                      }
+                                    },
+                                  ),
                                   const SizedBox(height: 40),
 
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton(
-                                          onPressed: _saveDraft,
-                                          child: const Text('Save as Draft'),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: _submitRegistration,
-                                          child: const Text(
-                                            'Submit for Review',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  RegisterFormActions(
+                                    onSaveDraft: _saveDraft,
+                                    onSubmit: _submitRegistration,
                                   ),
                                 ],
                               ),
@@ -566,13 +718,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
 
@@ -598,439 +743,34 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildBusinessPhotoField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Business Photo (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                if (_selectedPhotoFileName != null &&
-                    _selectedPhotoData != null)
-                  Column(
-                    children: [
-                      Icon(Icons.check_circle, size: 48, color: Colors.green),
-                      const SizedBox(height: 12),
-                      Text(
-                        'File selected: $_selectedPhotoFileName',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.green,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: _pickPhotoFile,
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Change Photo'),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _selectedPhotoFileName = null;
-                            _selectedPhotoData = null;
-                          });
-                        },
-                        icon: const Icon(Icons.close),
-                        label: const Text('Remove'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      const Icon(Icons.image, size: 48, color: Colors.grey),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: _pickPhotoFile,
-                        icon: const Icon(Icons.upload),
-                        label: const Text('Upload Photo'),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'JPG, PNG, WEBP • Max 5MB',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLocationField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Location/s (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  hintText: 'Enter address...',
-                  prefixIcon: const Icon(Icons.location_on),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    setState(() {
-                      _locations.add(value.trim());
-                      _locationController.clear();
-                    });
-                    _updateProgress();
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: () {
-                final address = _locationController.text.trim();
-                if (address.isNotEmpty) {
-                  setState(() {
-                    _locations.add(address);
-                    _locationController.clear();
-                  });
-                  _updateProgress();
-                }
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Add'),
-            ),
-          ],
-        ),
-        if (_locations.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 12.0),
-            child: Text(
-              'No locations added yet',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(top: 12.0),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _locations.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _locations[index],
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle),
-                        onPressed: () {
-                          setState(() => _locations.removeAt(index));
-                          _updateProgress();
-                        },
-                        splashRadius: 20,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildLatitudeLongitudeFields() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextFormField(
-            controller: _latitudeController,
-            decoration: InputDecoration(
-              labelText: 'Latitude',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            keyboardType: TextInputType.number,
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Required';
-              return null;
-            },
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: TextFormField(
-            controller: _longitudeController,
-            decoration: InputDecoration(
-              labelText: 'Longitude',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            keyboardType: TextInputType.number,
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Required';
-              return null;
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDiscountTypeField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Discount Type (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        RadioListTile<String>(
-          title: const Text('Percentage (%)'),
-          value: 'percentage',
-          groupValue: _selectedDiscountType,
-          onChanged: (value) => setState(() => _selectedDiscountType = value),
-        ),
-        RadioListTile<String>(
-          title: const Text('Fixed Amount (\$)'),
-          value: 'fixed',
-          groupValue: _selectedDiscountType,
-          onChanged: (value) => setState(() => _selectedDiscountType = value),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDiscountAmountField() {
-    return TextFormField(
-      controller: _discountAmountController,
+  Widget _buildCategoryFields() {
+    return DropdownButtonFormField<String>(
+      value: _selectedCategory,
       decoration: InputDecoration(
-        labelText: 'Discount Amount (Required)',
-        suffix: Text(_selectedDiscountType == 'percentage' ? '%' : '\$'),
+        labelText: 'Category (Required)',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      keyboardType: TextInputType.number,
+      items:
+          BusinessCategory.keys
+              .map(
+                (category) => DropdownMenuItem<String>(
+                  value: category,
+                  child: Text(BusinessCategory.displayLabel(category)),
+                ),
+              )
+              .toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedCategory = value;
+        });
+        _updateProgress();
+      },
       validator: (value) {
-        if (value == null || value.isEmpty) return 'Required';
-        final num = double.tryParse(value);
-        if (num == null || num <= 0) return 'Must be positive';
-        if (_selectedDiscountType == 'percentage' && num > 100)
-          return 'Max 100%';
+        if (value == null || value.isEmpty) {
+          return 'Please select a category';
+        }
         return null;
       },
-      onChanged: (_) => _updateProgress(),
-    );
-  }
-
-  Widget _buildDiscountFrequencyField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Discount Frequency (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        RadioListTile<String>(
-          title: const Text('Everyday (Renewable Daily)'),
-          value: 'everyday',
-          groupValue: _selectedDiscountFrequency,
-          onChanged:
-              (value) => setState(() => _selectedDiscountFrequency = value),
-        ),
-        RadioListTile<String>(
-          title: const Text('Once a Week (Weekly)'),
-          value: 'weekly',
-          groupValue: _selectedDiscountFrequency,
-          onChanged:
-              (value) => setState(() => _selectedDiscountFrequency = value),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSchoolPartnershipField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'School Partnership (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        CheckboxListTile(
-          title: const Text('Offer to all partner schools'),
-          value: _offerToAllSchools,
-          onChanged:
-              (value) => setState(() => _offerToAllSchools = value ?? true),
-        ),
-        if (!_offerToAllSchools)
-          Padding(
-            padding: const EdgeInsets.only(top: 12.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search and select schools...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSocialMediaFields() {
-    return Column(
-      children: [
-        _buildSocialMediaField('Website', _websiteController, 'https://'),
-        const SizedBox(height: 12),
-        _buildSocialMediaField('Facebook', _facebookController, '@'),
-        const SizedBox(height: 12),
-        _buildSocialMediaField('Instagram', _instagramController, '@'),
-        const SizedBox(height: 12),
-        _buildSocialMediaField('TikTok', _tiktokController, '@'),
-        const SizedBox(height: 12),
-        _buildSocialMediaField('X (Twitter)', _xController, '@'),
-      ],
-    );
-  }
-
-  Widget _buildSocialMediaField(
-    String label,
-    TextEditingController controller,
-    String prefix,
-  ) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixText: prefix,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  Widget _buildValidityField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Validity (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        CheckboxListTile(
-          title: const Text('Ongoing (No end date)'),
-          value: _isOngoing,
-          onChanged: (value) {
-            setState(() => _isOngoing = value ?? false);
-            _updateProgress();
-          },
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2100),
-                  );
-                  if (date != null) {
-                    setState(() => _startDate = date);
-                    _updateProgress();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _startDate?.toString().split(' ')[0] ?? 'Select Start Date',
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            if (!_isOngoing)
-              Expanded(
-                child: GestureDetector(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _startDate ?? DateTime.now(),
-                      firstDate: _startDate ?? DateTime.now(),
-                      lastDate: DateTime(2100),
-                    );
-                    if (date != null) {
-                      setState(() => _endDate = date);
-                      _updateProgress();
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _endDate?.toString().split(' ')[0] ?? 'Select End Date',
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ],
     );
   }
 }

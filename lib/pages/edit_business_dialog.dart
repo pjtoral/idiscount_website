@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:idiscount_website/models/business_info.dart';
+import 'package:idiscount_website/models/business_category.dart';
+import 'package:idiscount_website/models/dashboard_business_info.dart';
+import 'package:idiscount_website/models/business_profile_edit_data.dart';
+import 'package:idiscount_website/services/app_error_service.dart';
+import 'package:idiscount_website/viewmodels/edit_business_view_model.dart';
 
 class EditBusinessDialog extends StatefulWidget {
-  final BusinessInfo businessInfo;
-  final Function(BusinessInfo) onSave;
+  final DashboardBusinessInfo businessInfo;
+  final String? initialDiscountPercentage;
+  final Future<void> Function(BusinessProfileEditData) onSave;
 
   const EditBusinessDialog({
     Key? key,
     required this.businessInfo,
+    this.initialDiscountPercentage,
     required this.onSave,
   }) : super(key: key);
 
@@ -16,42 +22,22 @@ class EditBusinessDialog extends StatefulWidget {
 }
 
 class _EditBusinessDialogState extends State<EditBusinessDialog> {
-  late TextEditingController _businessNameController;
-  late TextEditingController _contactPersonController;
-  late TextEditingController _contactNumberController;
-  late TextEditingController _businessAddressController;
-  late TextEditingController _businessEmailController;
-  late String _selectedBusinessType;
+  late EditBusinessViewModel _viewModel;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _businessNameController = TextEditingController(
-      text: widget.businessInfo.businessName,
+    _viewModel = EditBusinessViewModel.fromBusinessInfo(
+      widget.businessInfo,
+      initialDiscountPercentage: widget.initialDiscountPercentage,
     );
-    _contactPersonController = TextEditingController(
-      text: widget.businessInfo.contactPerson,
-    );
-    _contactNumberController = TextEditingController(
-      text: widget.businessInfo.contactNumber,
-    );
-    _businessAddressController = TextEditingController(
-      text: widget.businessInfo.businessAddress,
-    );
-    _businessEmailController = TextEditingController(
-      text: widget.businessInfo.businessEmail,
-    );
-    _selectedBusinessType = widget.businessInfo.businessType;
   }
 
   @override
   void dispose() {
-    _businessNameController.dispose();
-    _contactPersonController.dispose();
-    _contactNumberController.dispose();
-    _businessAddressController.dispose();
-    _businessEmailController.dispose();
+    _viewModel.disposeControllers();
+    _viewModel.dispose();
     super.dispose();
   }
 
@@ -88,90 +74,70 @@ class _EditBusinessDialogState extends State<EditBusinessDialog> {
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
-                    controller: _businessNameController,
+                    controller: _viewModel.businessNameController,
                     decoration: InputDecoration(
                       labelText: 'Business Name',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Business name is required';
-                      }
-                      return null;
-                    },
+                    validator: _viewModel.validateBusinessName,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _selectedBusinessType,
+                    value: _viewModel.selectedCategory,
                     decoration: InputDecoration(
-                      labelText: 'Business Type',
+                      labelText: 'Category',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     items:
-                        [
-                              'Retail',
-                              'Service',
-                              'Manufacturing',
-                              'Wholesale',
-                              'Food & Beverage',
-                              'Technology',
-                              'Other',
-                            ]
+                        BusinessCategory.keys
                             .map(
                               (type) => DropdownMenuItem(
                                 value: type,
-                                child: Text(type),
+                                child: Text(
+                                  _viewModel.formatCategoryLabel(type),
+                                ),
                               ),
                             )
                             .toList(),
                     onChanged: (value) {
                       if (value != null) {
-                        setState(() {
-                          _selectedBusinessType = value;
-                        });
+                        setState(() => _viewModel.setCategory(value));
                       }
                     },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _contactPersonController,
+                    controller: _viewModel.contactPersonController,
                     decoration: InputDecoration(
                       labelText: 'Contact Person',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Contact person is required';
-                      }
-                      return null;
-                    },
+                    validator: _viewModel.validateContactPerson,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _contactNumberController,
+                    controller: _viewModel.discountPercentageController,
                     decoration: InputDecoration(
-                      labelText: 'Contact Number',
+                      labelText: 'Discount Percentage',
+                      suffixText: '%',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Contact number is required';
-                      }
-                      return null;
-                    },
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: _viewModel.validateDiscountPercentage,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _businessAddressController,
+                    controller: _viewModel.businessAddressController,
                     decoration: InputDecoration(
                       labelText: 'Business Address',
                       border: OutlineInputBorder(
@@ -179,16 +145,11 @@ class _EditBusinessDialogState extends State<EditBusinessDialog> {
                       ),
                     ),
                     maxLines: 2,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Business address is required';
-                      }
-                      return null;
-                    },
+                    validator: _viewModel.validateBusinessAddress,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _businessEmailController,
+                    controller: _viewModel.businessEmailController,
                     decoration: InputDecoration(
                       labelText: 'Business Email',
                       border: OutlineInputBorder(
@@ -196,15 +157,7 @@ class _EditBusinessDialogState extends State<EditBusinessDialog> {
                       ),
                     ),
                     keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Business email is required';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
-                      return null;
-                    },
+                    validator: _viewModel.validateBusinessEmail,
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -216,31 +169,62 @@ class _EditBusinessDialogState extends State<EditBusinessDialog> {
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            final updatedBusiness = widget.businessInfo
-                                .copyWith(
-                                  businessName: _businessNameController.text,
-                                  businessType: _selectedBusinessType,
-                                  contactPerson: _contactPersonController.text,
-                                  contactNumber: _contactNumberController.text,
-                                  businessAddress:
-                                      _businessAddressController.text,
-                                  businessEmail: _businessEmailController.text,
-                                );
-                            widget.onSave(updatedBusiness);
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Business information updated successfully',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text('Save Changes'),
+                        onPressed:
+                            _viewModel.isSaving
+                                ? null
+                                : () async {
+                                  if (!_formKey.currentState!.validate()) {
+                                    return;
+                                  }
+
+                                  final updatedBusiness =
+                                      _viewModel.buildPayload();
+
+                                  setState(() => _viewModel.setSaving(true));
+                                  try {
+                                    await widget.onSave(updatedBusiness);
+                                    if (!mounted) return;
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Business information updated successfully',
+                                        ),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          AppErrorService.toMessage(
+                                            e,
+                                            fallback:
+                                                'Failed to update business information.',
+                                          ),
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  } finally {
+                                    if (mounted) {
+                                      setState(
+                                        () => _viewModel.setSaving(false),
+                                      );
+                                    }
+                                  }
+                                },
+                        child:
+                            _viewModel.isSaving
+                                ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Text('Save Changes'),
                       ),
                     ],
                   ),

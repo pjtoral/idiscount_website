@@ -15,6 +15,21 @@ class AuthService {
     );
   }
 
+  Future<void> sendVerificationCode(String email) async {
+    await _supabase.auth.resend(type: OtpType.signup, email: email);
+  }
+
+  Future<AuthResponse> verifyEmailCode({
+    required String email,
+    required String code,
+  }) async {
+    return await _supabase.auth.verifyOTP(
+      email: email,
+      token: code,
+      type: OtpType.signup,
+    );
+  }
+
   Future<AuthResponse> signIn({
     required String email,
     required String password,
@@ -57,6 +72,10 @@ class AuthService {
 
   Stream<AuthState> get authStateChanges {
     return _supabase.auth.onAuthStateChange;
+  }
+
+  String? getCurrentUserId() {
+    return _supabase.auth.currentUser?.id;
   }
 
   Future<void> resendVerificationEmail() async {

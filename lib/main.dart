@@ -52,7 +52,10 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/email-verification',
-          builder: (context, state) => const EmailVerificationPage(),
+          builder:
+              (context, state) => EmailVerificationPage(
+                email: state.uri.queryParameters['email'],
+              ),
         ),
         GoRoute(
           path: '/register',

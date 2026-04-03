@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -35,13 +36,21 @@ class _LoginPageState extends State<LoginPage> {
       } on AuthException catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(AppErrorService.toMessage(e)),
+            backgroundColor: Colors.red,
+          ),
         );
-      } catch (_) {
+      } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login failed. Please try again.'),
+          SnackBar(
+            content: Text(
+              AppErrorService.toMessage(
+                e,
+                fallback: 'Login failed. Please try again.',
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
