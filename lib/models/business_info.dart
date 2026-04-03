@@ -1,4 +1,3 @@
-/// Business information model
 class BusinessInfo {
   final String businessName;
   final String businessType;
@@ -18,7 +17,6 @@ class BusinessInfo {
     required this.submissionStatus,
   });
 
-  // Create a copy with modifications
   BusinessInfo copyWith({
     String? businessName,
     String? businessType,
