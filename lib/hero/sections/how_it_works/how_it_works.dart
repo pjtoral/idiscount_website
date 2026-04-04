@@ -20,10 +20,16 @@ class HowItWorks extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: backgroundColor,
+      // decoration: BoxDecoration(
+      //   gradient: LinearGradient(
+      //     begin: Alignment.topCenter,
+      //     end: Alignment.bottomCenter,
+      //     colors: [Colors.white, Color(0xFFeae594), Color(0xFFB0CBA1)],
+      //   ),
+      // ),
       padding: EdgeInsets.symmetric(horizontal: sectionHorizontalPadding),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 40.0, 0, 40.0),
+        padding: const EdgeInsets.fromLTRB(0, 80.0, 0, 40.0),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: contentMaxWidth),
@@ -31,12 +37,11 @@ class HowItWorks extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'How It Works',
+                  "It's free. So, how do it work?",
                   style: TextStyle(
                     fontSize: screenWidth > 768 ? 48 : 36,
                     fontWeight: FontWeight.w300,
                     color: Colors.black,
-                    letterSpacing: 3,
                   ),
                 ),
                 const SizedBox(height: 60),
@@ -45,43 +50,49 @@ class HowItWorks extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
                         HowItWorksItem(
-                          imagePath: 'assets/images/hiw1.webp',
-                          title: 'Fast & Easy',
-                          subtext: 'Get things done quickly with our platform.',
+                          imagePath: 'assets/images/app_3.webp',
+                          title: 'Step 1 - Browse Businesses',
+                          description:
+                              'Explore exclusive deals from partner businesses you need at the moment. We have categories from food to services!',
                         ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 10),
                         HowItWorksItem(
-                          imagePath: 'assets/images/hiw2.webp',
-                          title: 'Reliable',
-                          subtext: 'Always dependable for your needs.',
+                          imagePath: 'assets/images/app_2.webp',
+                          title: 'Step 2 - Choose a Discount',
+                          description:
+                              'Discounts range from percentages off to buy one get one deals. Select the discount that best fits you at the moment!',
                         ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 10),
                         HowItWorksItem(
-                          imagePath: 'assets/images/hiw3.webp',
-                          title: 'Secure',
-                          subtext: 'Your data is safe with us.',
+                          imagePath: 'assets/images/app_1.webp',
+                          title: 'Step 3 - Check Out!',
+                          description:
+                              'Claim the discount instore or online depending on the business capabilities. You are given the flexibility to choose!',
                         ),
                       ],
                     )
-                    : Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 20,
-                      runSpacing: 20,
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
                         HowItWorksItem(
-                          imagePath: 'assets/images/hiw1.webp',
-                          title: 'See discounts from nearby businesses.',
-                          subtext: '',
+                          imagePath: 'assets/images/app_3.webp',
+                          title: 'Step 1 - Browse Businesses',
+                          description:
+                              'Explore exclusive deals from partner businesses you need at the moment. We have categories from food to services!',
                         ),
+                        SizedBox(width: 10),
                         HowItWorksItem(
-                          imagePath: 'assets/images/hiw2.webp',
-                          title: 'Manually search businesses.',
-                          subtext: '',
+                          imagePath: 'assets/images/app_2.webp',
+                          title: 'Step 2 - Choose a Discount',
+                          description:
+                              'Discounts range from percentages off to buy one get one deals. Select the discount that best fits you at the moment!',
                         ),
+                        SizedBox(width: 10),
                         HowItWorksItem(
-                          imagePath: 'assets/images/hiw3.webp',
-                          title: 'Filter discounts by category.',
-                          subtext: '',
+                          imagePath: 'assets/images/app_1.webp',
+                          title: 'Step 3 - Check Out!',
+                          description:
+                              'Claim the discount instore or online depending on the business capabilities. You are given the flexibility to choose!',
                         ),
                       ],
                     ),

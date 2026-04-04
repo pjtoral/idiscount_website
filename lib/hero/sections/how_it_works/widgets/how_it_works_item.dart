@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class HowItWorksItem extends StatelessWidget {
   final String imagePath;
   final String title;
-  final String subtext;
+  final String description;
 
   const HowItWorksItem({
     super.key,
     required this.imagePath,
     required this.title,
-    required this.subtext,
+    required this.description,
   });
 
   @override
@@ -25,42 +25,54 @@ class HowItWorksItem extends StatelessWidget {
       cardWidth = screenWidth * 0.25;
     }
 
-    final cardHeight = cardWidth * 1.2;
+    final cardHeight = cardWidth * 1;
 
     return Container(
       width: cardWidth,
       height: cardHeight,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFD700),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.asset(imagePath, width: 340, height: 340, fit: BoxFit.contain),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Image.asset(
+              imagePath,
+              height: cardHeight * 0.65,
+              width: double.infinity,
+              fit: BoxFit.cover,
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+
           Expanded(
-            child: Text(
-              subtext,
-              style: const TextStyle(fontSize: 14, color: Colors.black54),
-              textAlign: TextAlign.center,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111111),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.black.withOpacity(0.6),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:idiscount_website/hero/sections/partners/widgets/partner_card.dart';
+import 'package:idiscount_website/hero/sections/business_partners/widgets/partner_card.dart';
 
-/**
- * Things to add:
- *  - Change partners to actual partners pulled from supabase
- *  - Different partners per row
- */
 class PartnersSection extends StatelessWidget {
   const PartnersSection({super.key});
 
@@ -16,50 +11,27 @@ class PartnersSection extends StatelessWidget {
     final isDesktop = screenWidth > 425;
 
     final partners = const [
-      PartnerCard(imagePath: 'assets/images/partner1.webp'),
-      PartnerCard(imagePath: 'assets/images/partner2.webp'),
-      PartnerCard(imagePath: 'assets/images/partner3.webp'),
-      PartnerCard(imagePath: 'assets/images/partner4.webp'),
-      PartnerCard(imagePath: 'assets/images/partner5.webp'),
-      PartnerCard(imagePath: 'assets/images/partner6.webp'),
+      _PartnerText("Wisechoice Supplements"),
+      _PartnerText("TUF Barbershop"),
+      _PartnerText("Hola Coffee"),
+      _PartnerText("Handuraw Pizza"),
+      _PartnerText("Genie Cakes"),
+      _PartnerText("Cloudkart"),
+      _PartnerText("Lasagnyum"),
     ];
 
-    final carouselHeight =
-        isDesktop ? screenHeight * 0.35 : screenHeight * 0.30;
+    final carouselHeight = isDesktop ? screenHeight * 0.1 : screenHeight * 0.10;
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F7EF),
-        border: Border.symmetric(
-          horizontal: BorderSide(color: const Color(0xFFE1EBDD)),
-        ),
-      ),
+
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SizedBox(height: screenHeight * 0.1),
-          Text(
-            'Partners',
-            style: TextStyle(
-              fontSize: isDesktop ? 48 : 32,
-              fontWeight: FontWeight.w300,
-              color: const Color(0xFF2D5016),
-              letterSpacing: 3,
-            ),
-          ),
-          const SizedBox(height: 30),
-
           SizedBox(
             height: carouselHeight,
             child: _AutoScrollCarousel(children: partners, reverse: false),
           ),
-
-          SizedBox(
-            height: carouselHeight,
-            child: _AutoScrollCarousel(children: partners, reverse: true),
-          ),
-          SizedBox(height: screenHeight * 0.1),
         ],
       ),
     );
@@ -115,6 +87,32 @@ class _AutoScrollCarouselState extends State<_AutoScrollCarousel>
       scrollDirection: Axis.horizontal,
       physics: const NeverScrollableScrollPhysics(),
       children: [...widget.children, ...widget.children],
+    );
+  }
+}
+
+class _PartnerText extends StatelessWidget {
+  final String text;
+
+  const _PartnerText(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 425;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Center(
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: isDesktop ? 20 : 14, // slightly bigger
+            fontWeight: FontWeight.w600, // bold but not too heavy
+            color: Colors.black.withOpacity(0.5), // subtle transparency
+            letterSpacing: 0.5, // gives it that premium spacing
+          ),
+        ),
+      ),
     );
   }
 }
