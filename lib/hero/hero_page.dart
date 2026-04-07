@@ -476,6 +476,51 @@ class _HeroPageState extends State<HeroPage> with TickerProviderStateMixin {
               _buildContactItem('Phone', '+639770329562'),
             ],
           ),
+
+          const SizedBox(height: 36),
+
+          const Text(
+            'Business owner? Register or login to partner with us.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2D5016),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              OutlinedButton(
+                onPressed: () => context.go('/login'),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFFFD54F), width: 1.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('Login'),
+              ),
+              ElevatedButton(
+                onPressed: () => context.go('/signup'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD54F),
+                  foregroundColor: const Color(0xFF2D5016),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('Register'),
+              ),
+            ],
+          ),
         ],
       ),
     );

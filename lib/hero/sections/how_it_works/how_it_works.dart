@@ -71,30 +71,34 @@ class HowItWorks extends StatelessWidget {
                         ),
                       ],
                     )
-                    : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        HowItWorksItem(
-                          imagePath: 'assets/images/app_3.webp',
-                          title: 'Step 1 - Browse Businesses',
-                          description:
-                              'Explore exclusive deals from partner businesses you need at the moment. We have categories from food to services!',
-                        ),
-                        SizedBox(width: 10),
-                        HowItWorksItem(
-                          imagePath: 'assets/images/app_2.webp',
-                          title: 'Step 2 - Choose a Discount',
-                          description:
-                              'Discounts range from percentages off to buy one get one deals. Select the discount that best fits you at the moment!',
-                        ),
-                        SizedBox(width: 10),
-                        HowItWorksItem(
-                          imagePath: 'assets/images/app_1.webp',
-                          title: 'Step 3 - Check Out!',
-                          description:
-                              'Claim the discount instore or online depending on the business capabilities. You are given the flexibility to choose!',
-                        ),
-                      ],
+                    : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          HowItWorksItem(
+                            imagePath: 'assets/images/app_3.webp',
+                            title: 'Step 1 - Browse Businesses',
+                            description:
+                                'Explore exclusive deals from partner businesses you need at the moment. We have categories from food to services!',
+                          ),
+                          SizedBox(width: 10),
+                          HowItWorksItem(
+                            imagePath: 'assets/images/app_2.webp',
+                            title: 'Step 2 - Choose a Discount',
+                            description:
+                                'Discounts range from percentages off to buy one get one deals. Select the discount that best fits you at the moment!',
+                          ),
+                          SizedBox(width: 10),
+                          HowItWorksItem(
+                            imagePath: 'assets/images/app_1.webp',
+                            title: 'Step 3 - Check Out!',
+                            description:
+                                'Claim the discount instore or online depending on the business capabilities. You are given the flexibility to choose!',
+                          ),
+                        ],
+                      ),
                     ),
               ],
             ),

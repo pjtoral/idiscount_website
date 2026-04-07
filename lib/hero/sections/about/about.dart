@@ -10,54 +10,88 @@ class AboutSection extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 768;
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 1.15,
+    return Container(
       width: double.infinity,
-      // decoration: BoxDecoration(
-      //   gradient: LinearGradient(
-      //     begin: Alignment.topCenter,
-      //     end: Alignment.bottomCenter,
-      //     colors: [Colors.white, Color(0xFFeae594), Color(0xFFB0CBA1)],
-      //   ),
-      // ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(height: 50),
-            Text(
-              'Supported By',
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width > 768 ? 48 : 36,
-                color: Colors.black,
-                letterSpacing: 1.5,
-              ),
+      color: backgroundColor,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 24 : 16,
+              vertical: isDesktop ? 50 : 32,
             ),
-            SizedBox(height: 50),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                _buildFeaturedItem(imagePath: 'assets/images/fi1.webp'),
-                _buildFeaturedItem(imagePath: 'assets/images/fi3.webp'),
-                _buildFeaturedItem(imagePath: 'assets/images/fi5.webp'),
-                _buildFeaturedItem(imagePath: 'assets/images/fi4.webp'),
-                _buildFeaturedItem(imagePath: 'assets/images/fi2.webp'),
-              ],
-            ),
-            SizedBox(height: 100),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/about_us_1.webp',
-                  height: 500,
-                  fit: BoxFit.contain,
+                Text(
+                  'Supported By',
+                  style: TextStyle(
+                    fontSize: isDesktop ? 48 : 36,
+                    color: Colors.black,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-                _buildAboutBox1(context),
+                SizedBox(height: isDesktop ? 50 : 32),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: isDesktop ? 16 : 12,
+                  runSpacing: isDesktop ? 16 : 12,
+                  children: [
+                    _buildFeaturedItem(
+                      imagePath: 'assets/images/fi1.webp',
+                      isDesktop: isDesktop,
+                    ),
+                    _buildFeaturedItem(
+                      imagePath: 'assets/images/fi3.webp',
+                      isDesktop: isDesktop,
+                    ),
+                    _buildFeaturedItem(
+                      imagePath: 'assets/images/fi5.webp',
+                      isDesktop: isDesktop,
+                    ),
+                    _buildFeaturedItem(
+                      imagePath: 'assets/images/fi4.webp',
+                      isDesktop: isDesktop,
+                    ),
+                    _buildFeaturedItem(
+                      imagePath: 'assets/images/fi2.webp',
+                      isDesktop: isDesktop,
+                    ),
+                  ],
+                ),
+                SizedBox(height: isDesktop ? 100 : 48),
+                if (isDesktop)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Image.asset(
+                          'assets/images/about_us_1.webp',
+                          height: 500,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(child: _buildAboutBox1(context)),
+                    ],
+                  )
+                else
+                  Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/about_us_1.webp',
+                        height: 220,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 24),
+                      _buildAboutBox1(context),
+                    ],
+                  ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -116,8 +150,9 @@ class AboutSection extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturedItem({String? imagePath}) {
-    return Expanded(
+  Widget _buildFeaturedItem({String? imagePath, required bool isDesktop}) {
+    return SizedBox(
+      width: isDesktop ? 170 : 120,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -126,11 +161,11 @@ class AboutSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
                 imagePath,
-                height: 120,
+                height: isDesktop ? 120 : 88,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 120,
+                    height: isDesktop ? 120 : 88,
                     decoration: BoxDecoration(
                       color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(8),
