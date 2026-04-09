@@ -680,10 +680,13 @@ class _RegisterPageState extends State<RegisterPage> {
                                   const SizedBox(height: 16),
                                   RegisterDiscountTypeField(
                                     selectedDiscountType: _selectedDiscountType,
-                                    onChanged:
-                                        (value) => setState(
-                                          () => _selectedDiscountType = value,
-                                        ),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedDiscountType = value;
+                                        _discountAmountController.clear();
+                                      });
+                                      _updateProgress();
+                                    },
                                   ),
                                   const SizedBox(height: 20),
                                   RegisterDiscountAmountField(

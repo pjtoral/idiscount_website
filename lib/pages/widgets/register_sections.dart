@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:idiscount_website/models/school_option.dart';
 
 class RegisterSectionHeader extends StatelessWidget {
@@ -121,27 +122,21 @@ class RegisterDiscountTypeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Discount Type (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        RadioListTile<String>(
-          title: const Text('Percentage (%)'),
-          value: 'percentage',
-          groupValue: selectedDiscountType,
-          onChanged: onChanged,
-        ),
-        RadioListTile<String>(
-          title: const Text('Fixed Amount (\$)'),
-          value: 'fixed',
-          groupValue: selectedDiscountType,
-          onChanged: onChanged,
-        ),
+    return DropdownButtonFormField<String>(
+      value: selectedDiscountType,
+      decoration: InputDecoration(
+        labelText: 'Discount Type (Required)',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      items: const [
+        DropdownMenuItem(value: 'percentage', child: Text('%')),
+        DropdownMenuItem(value: 'fixed', child: Text('PHP')),
       ],
+      onChanged: onChanged,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Required';
+        return null;
+      },
     );
   }
 }
@@ -160,20 +155,38 @@ class RegisterDiscountAmountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPercentage = selectedDiscountType == 'percentage';
+
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
         labelText: 'Discount Amount (Required)',
-        suffix: Text(selectedDiscountType == 'percentage' ? '%' : '\$'),
+        hintText: isPercentage ? '0 to 100' : '00.00',
+        suffix: Text(isPercentage ? '%' : 'PHP'),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      keyboardType: TextInputType.number,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters:
+          isPercentage
+              ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(3),
+              ]
+              : [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
       validator: (value) {
         if (value == null || value.isEmpty) return 'Required';
+        if (isPercentage) {
+          final num = int.tryParse(value);
+          if (num == null || num <= 0) return 'Must be a positive number';
+          if (num > 100) return 'Maximum is 100%';
+          return null;
+        }
+
         final num = double.tryParse(value);
-        if (num == null || num <= 0) return 'Must be positive';
-        if (selectedDiscountType == 'percentage' && num > 100)
-          return 'Max 100%';
+        if (num == null || num <= 0) return 'Must be a positive amount';
+        if (!RegExp(r'^\d+\.\d{2}\$').hasMatch(value)) {
+          return 'Use PHP format like 00.00';
+        }
         return null;
       },
       onChanged: onChanged,
