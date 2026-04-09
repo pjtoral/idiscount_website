@@ -4,17 +4,20 @@ class RegisterFormViewModel {
     required List<String> locations,
     required String? discountType,
     required String discountAmount,
+    required bool offerToAllSchools,
+    required List<String> selectedSchools,
     required DateTime? startDate,
     required DateTime? endDate,
     required bool isOngoing,
   }) {
     int filledFields = 0;
-    const int totalFields = 7;
+    const int totalFields = 8;
 
     if (businessName.trim().isNotEmpty) filledFields++;
     if (locations.isNotEmpty) filledFields++;
     if (discountType != null) filledFields++;
     if (discountAmount.trim().isNotEmpty) filledFields++;
+    if (offerToAllSchools || selectedSchools.isNotEmpty) filledFields++;
     if (startDate != null) filledFields++;
     if (isOngoing || endDate != null) filledFields++;
 
@@ -24,6 +27,8 @@ class RegisterFormViewModel {
   String? validateBeforeSubmit({
     required bool formValid,
     required List<String> locations,
+    required bool offerToAllSchools,
+    required List<String> selectedSchools,
     required String? selectedCategory,
     required String? selectedPhotoFileName,
     required Object? selectedPhotoData,
@@ -36,6 +41,9 @@ class RegisterFormViewModel {
     }
     if (locations.isEmpty) {
       return 'Please add at least one location';
+    }
+    if (!offerToAllSchools && selectedSchools.isEmpty) {
+      return 'Please select at least one school';
     }
     if (selectedCategory == null) {
       return 'Please select a business category';

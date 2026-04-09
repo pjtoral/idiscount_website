@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:idiscount_website/models/school_option.dart';
 
 class RegisterSectionHeader extends StatelessWidget {
   final String title;
@@ -429,12 +430,22 @@ class RegisterLocationsField extends StatelessWidget {
 
 class RegisterSchoolPartnershipField extends StatelessWidget {
   final bool offerToAllSchools;
-  final ValueChanged<bool?> onChanged;
+  final List<SchoolOption> schools;
+  final List<String> selectedSchools;
+  final bool isLoadingSchools;
+  final String? loadErrorMessage;
+  final ValueChanged<bool?> onOfferToAllSchoolsChanged;
+  final ValueChanged<String> onSchoolToggled;
 
   const RegisterSchoolPartnershipField({
     super.key,
     required this.offerToAllSchools,
-    required this.onChanged,
+    required this.schools,
+    required this.selectedSchools,
+    required this.isLoadingSchools,
+    required this.loadErrorMessage,
+    required this.onOfferToAllSchoolsChanged,
+    required this.onSchoolToggled,
   });
 
   @override
@@ -447,23 +458,63 @@ class RegisterSchoolPartnershipField extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        CheckboxListTile(
-          title: const Text('Offer to all partner schools'),
-          value: offerToAllSchools,
-          onChanged: onChanged,
+        Padding(
+          padding: const EdgeInsets.only(top: 12.0),
+          child:
+              isLoadingSchools
+                  ? const Center(child: CircularProgressIndicator())
+                  : loadErrorMessage != null
+                  ? Text(
+                    loadErrorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  )
+                  : schools.isEmpty
+                  ? Text(
+                    'No schools found.',
+                    style: TextStyle(color: Colors.grey[600]),
+                  )
+                  : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (selectedSchools.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            'Select one or more schools below.',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: schools.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 4),
+                        itemBuilder: (context, index) {
+                          final school = schools[index];
+                          final isSelected = selectedSchools.contains(
+                            school.names,
+                          );
+
+                          return CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            title: Text(school.displayLabel),
+                            value: isSelected,
+                            onChanged: (_) => onSchoolToggled(school.names),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
         ),
-        if (!offerToAllSchools)
-          Padding(
-            padding: const EdgeInsets.only(top: 12.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search and select schools...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
+        const SizedBox(height: 8),
+        CheckboxListTile(
+          title: const Text('Offer to all Schools'),
+          value: offerToAllSchools,
+          onChanged: onOfferToAllSchoolsChanged,
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
       ],
     );
   }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:idiscount_website/models/business_category.dart';
+import 'package:idiscount_website/models/school_option.dart';
 import 'package:idiscount_website/pages/widgets/register_sections.dart';
 import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
 import 'package:idiscount_website/services/business_service.dart';
+import 'package:idiscount_website/services/school_service.dart';
 import 'package:idiscount_website/viewmodels/register_form_view_model.dart';
 import 'dart:html' as html;
 import 'dart:typed_data';
@@ -20,6 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _businessService = BusinessService();
+  final _schoolService = SchoolService();
   final _formViewModel = RegisterFormViewModel();
   double _progress = 0.0;
 
@@ -43,14 +46,70 @@ class _RegisterPageState extends State<RegisterPage> {
   DateTime? _endDate;
   List<String> _locations = [];
   List<String> _selectedSchools = [];
+  List<SchoolOption> _schools = [];
+  bool _isLoadingSchools = true;
+  String? _schoolLoadError;
   String? _selectedPhotoFileName;
   Uint8List? _selectedPhotoData;
   String? _selectedCategory;
 
+  List<String> get _allSchoolNames => _schools.map((s) => s.names).toList();
+
+  void _syncOfferToAllFromSelection() {
+    if (_schools.isEmpty) {
+      _offerToAllSchools = false;
+      return;
+    }
+
+    final allSelected = _allSchoolNames.every(_selectedSchools.contains);
+    _offerToAllSchools = allSelected;
+  }
+
+  void _applyOfferToAllSelection(bool isChecked) {
+    _offerToAllSchools = isChecked;
+    if (isChecked) {
+      _selectedSchools = _allSchoolNames;
+    } else {
+      _selectedSchools = [];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadSchools();
     _initPage();
+  }
+
+  Future<void> _loadSchools() async {
+    try {
+      final schools = await _schoolService.fetchSchools();
+      if (!mounted) return;
+
+      setState(() {
+        _schools = schools;
+        _selectedSchools =
+            _selectedSchools
+                .where((selected) => _allSchoolNames.contains(selected))
+                .toList();
+        if (_offerToAllSchools) {
+          _selectedSchools = _allSchoolNames;
+        }
+        _syncOfferToAllFromSelection();
+        _schoolLoadError = null;
+        _isLoadingSchools = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _schoolLoadError = AppErrorService.toMessage(
+          e,
+          fallback: 'Failed to load schools.',
+        );
+        _isLoadingSchools = false;
+      });
+    }
   }
 
   Future<void> _initPage() async {
@@ -216,6 +275,8 @@ class _RegisterPageState extends State<RegisterPage> {
         locations: _locations,
         discountType: _selectedDiscountType,
         discountAmount: _discountAmountController.text,
+        offerToAllSchools: _offerToAllSchools,
+        selectedSchools: _selectedSchools,
         startDate: _startDate,
         endDate: _endDate,
         isOngoing: _isOngoing,
@@ -303,6 +364,8 @@ class _RegisterPageState extends State<RegisterPage> {
     final validationMessage = _formViewModel.validateBeforeSubmit(
       formValid: _formKey.currentState!.validate(),
       locations: _locations,
+      offerToAllSchools: _offerToAllSchools,
+      selectedSchools: _selectedSchools,
       selectedCategory: _selectedCategory,
       selectedPhotoFileName: _selectedPhotoFileName,
       selectedPhotoData: _selectedPhotoData,
@@ -636,11 +699,30 @@ class _RegisterPageState extends State<RegisterPage> {
                                   const SizedBox(height: 16),
                                   RegisterSchoolPartnershipField(
                                     offerToAllSchools: _offerToAllSchools,
-                                    onChanged: (value) {
-                                      setState(
-                                        () =>
-                                            _offerToAllSchools = value ?? true,
-                                      );
+                                    schools: _schools,
+                                    selectedSchools: _selectedSchools,
+                                    isLoadingSchools: _isLoadingSchools,
+                                    loadErrorMessage: _schoolLoadError,
+                                    onOfferToAllSchoolsChanged: (value) {
+                                      setState(() {
+                                        _applyOfferToAllSelection(
+                                          value ?? false,
+                                        );
+                                      });
+                                      _updateProgress();
+                                    },
+                                    onSchoolToggled: (schoolName) {
+                                      setState(() {
+                                        if (_selectedSchools.contains(
+                                          schoolName,
+                                        )) {
+                                          _selectedSchools.remove(schoolName);
+                                        } else {
+                                          _selectedSchools.add(schoolName);
+                                        }
+                                        _syncOfferToAllFromSelection();
+                                      });
+                                      _updateProgress();
                                     },
                                   ),
                                   const SizedBox(height: 32),
