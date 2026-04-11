@@ -502,306 +502,343 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black54,
-      body: Center(
-        child: Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/idiscount_web_bg.webp',
+              fit: BoxFit.cover,
+            ),
           ),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 640, maxHeight: 600),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Business Registration',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color.fromARGB(190, 255, 255, 255),
+                    Color.fromARGB(170, 249, 247, 210),
+                    Color.fromARGB(190, 187, 207, 177),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Container(
+                constraints: const BoxConstraints(
+                  maxWidth: 640,
+                  maxHeight: 600,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => context.go('/'),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Business Registration',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => context.go('/'),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Theme(
-                        data: Theme.of(context).copyWith(
-                          inputDecorationTheme: InputDecorationTheme(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Colors.grey,
-                                width: 1.5,
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              inputDecorationTheme: InputDecorationTheme(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Colors.grey,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFFFD54F),
+                                    width: 2,
+                                  ),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Colors.red,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Colors.red,
+                                    width: 2,
+                                  ),
+                                ),
                               ),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFFFD54F),
-                                width: 2,
-                              ),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Colors.red,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Colors.red,
-                                width: 2,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: LinearProgressIndicator(
+                                    value: _progress,
+                                    minHeight: 8,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Completion: ${(_progress * 100).toStringAsFixed(0)}%',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                Form(
+                                  key: _formKey,
+                                  onChanged: _updateProgress,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const RegisterSectionHeader(
+                                        title: 'Basic Business Information',
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _buildBusinessNameField(),
+                                      const SizedBox(height: 20),
+                                      _buildCategoryFields(),
+                                      const SizedBox(height: 20),
+                                      RegisterBusinessPhotoField(
+                                        selectedPhotoFileName:
+                                            _selectedPhotoFileName,
+                                        hasPhotoData:
+                                            _selectedPhotoData != null,
+                                        onPickPhoto: _pickPhotoFile,
+                                        onRemovePhoto: () {
+                                          setState(() {
+                                            _selectedPhotoFileName = null;
+                                            _selectedPhotoData = null;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      const RegisterSectionHeader(
+                                        title: 'Location Information',
+                                      ),
+                                      const SizedBox(height: 16),
+                                      RegisterLocationsField(
+                                        locationController: _locationController,
+                                        locations: _locations,
+                                        onSubmitted: (value) {
+                                          if (value.trim().isNotEmpty) {
+                                            setState(() {
+                                              _locations.add(value.trim());
+                                              _locationController.clear();
+                                            });
+                                            _updateProgress();
+                                          }
+                                        },
+                                        onAdd: () {
+                                          final address =
+                                              _locationController.text.trim();
+                                          if (address.isNotEmpty) {
+                                            setState(() {
+                                              _locations.add(address);
+                                              _locationController.clear();
+                                            });
+                                            _updateProgress();
+                                          }
+                                        },
+                                        onRemove: (index) {
+                                          setState(
+                                            () => _locations.removeAt(index),
+                                          );
+                                          _updateProgress();
+                                        },
+                                      ),
+                                      const SizedBox(height: 20),
+                                      RegisterCityProvinceFields(
+                                        cityMunicipalityController:
+                                            _cityMunicipalityController,
+                                        provinceController: _provinceController,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      RegisterCoordinatesFields(
+                                        latitudeController: _latitudeController,
+                                        longitudeController:
+                                            _longitudeController,
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      const RegisterSectionHeader(
+                                        title: 'Discount Details',
+                                      ),
+                                      const SizedBox(height: 16),
+                                      RegisterDiscountTypeField(
+                                        selectedDiscountType:
+                                            _selectedDiscountType,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _selectedDiscountType = value;
+                                            _discountAmountController.clear();
+                                          });
+                                          _updateProgress();
+                                        },
+                                      ),
+                                      const SizedBox(height: 20),
+                                      RegisterDiscountAmountField(
+                                        controller: _discountAmountController,
+                                        selectedDiscountType:
+                                            _selectedDiscountType,
+                                        onChanged: (_) => _updateProgress(),
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      const RegisterSectionHeader(
+                                        title: 'Partnership Details',
+                                      ),
+                                      const SizedBox(height: 16),
+                                      RegisterSchoolPartnershipField(
+                                        offerToAllSchools: _offerToAllSchools,
+                                        schools: _schools,
+                                        selectedSchools: _selectedSchools,
+                                        isLoadingSchools: _isLoadingSchools,
+                                        loadErrorMessage: _schoolLoadError,
+                                        onOfferToAllSchoolsChanged: (value) {
+                                          setState(() {
+                                            _applyOfferToAllSelection(
+                                              value ?? false,
+                                            );
+                                          });
+                                          _updateProgress();
+                                        },
+                                        onSchoolToggled: (schoolName) {
+                                          setState(() {
+                                            if (_selectedSchools.contains(
+                                              schoolName,
+                                            )) {
+                                              _selectedSchools.remove(
+                                                schoolName,
+                                              );
+                                            } else {
+                                              _selectedSchools.add(schoolName);
+                                            }
+                                            _syncOfferToAllFromSelection();
+                                          });
+                                          _updateProgress();
+                                        },
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      const RegisterSectionHeader(
+                                        title: 'Social Media & Online Presence',
+                                      ),
+                                      const SizedBox(height: 16),
+                                      RegisterSocialMediaFields(
+                                        websiteController: _websiteController,
+                                        facebookController: _facebookController,
+                                        instagramController:
+                                            _instagramController,
+                                        tiktokController: _tiktokController,
+                                        xController: _xController,
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      const RegisterSectionHeader(
+                                        title: 'Validity Period',
+                                      ),
+                                      const SizedBox(height: 16),
+                                      RegisterValidityField(
+                                        isOngoing: _isOngoing,
+                                        startDate: _startDate,
+                                        endDate: _endDate,
+                                        onToggleOngoing: (value) {
+                                          setState(
+                                            () => _isOngoing = value ?? false,
+                                          );
+                                          _updateProgress();
+                                        },
+                                        onTapStartDate: () async {
+                                          final date = await showDatePicker(
+                                            context: context,
+                                            initialDate: DateTime.now(),
+                                            firstDate: DateTime.now(),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (date != null) {
+                                            setState(() => _startDate = date);
+                                            _updateProgress();
+                                          }
+                                        },
+                                        onTapEndDate: () async {
+                                          final date = await showDatePicker(
+                                            context: context,
+                                            initialDate:
+                                                _startDate ?? DateTime.now(),
+                                            firstDate:
+                                                _startDate ?? DateTime.now(),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (date != null) {
+                                            setState(() => _endDate = date);
+                                            _updateProgress();
+                                          }
+                                        },
+                                      ),
+                                      const SizedBox(height: 40),
+
+                                      RegisterFormActions(
+                                        onSaveDraft: _saveDraft,
+                                        onSubmit: _submitRegistration,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: LinearProgressIndicator(
-                                value: _progress,
-                                minHeight: 8,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Completion: ${(_progress * 100).toStringAsFixed(0)}%',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-                            Form(
-                              key: _formKey,
-                              onChanged: _updateProgress,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const RegisterSectionHeader(
-                                    title: 'Basic Business Information',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildBusinessNameField(),
-                                  const SizedBox(height: 20),
-                                  _buildCategoryFields(),
-                                  const SizedBox(height: 20),
-                                  RegisterBusinessPhotoField(
-                                    selectedPhotoFileName:
-                                        _selectedPhotoFileName,
-                                    hasPhotoData: _selectedPhotoData != null,
-                                    onPickPhoto: _pickPhotoFile,
-                                    onRemovePhoto: () {
-                                      setState(() {
-                                        _selectedPhotoFileName = null;
-                                        _selectedPhotoData = null;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  const RegisterSectionHeader(
-                                    title: 'Location Information',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  RegisterLocationsField(
-                                    locationController: _locationController,
-                                    locations: _locations,
-                                    onSubmitted: (value) {
-                                      if (value.trim().isNotEmpty) {
-                                        setState(() {
-                                          _locations.add(value.trim());
-                                          _locationController.clear();
-                                        });
-                                        _updateProgress();
-                                      }
-                                    },
-                                    onAdd: () {
-                                      final address =
-                                          _locationController.text.trim();
-                                      if (address.isNotEmpty) {
-                                        setState(() {
-                                          _locations.add(address);
-                                          _locationController.clear();
-                                        });
-                                        _updateProgress();
-                                      }
-                                    },
-                                    onRemove: (index) {
-                                      setState(
-                                        () => _locations.removeAt(index),
-                                      );
-                                      _updateProgress();
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  RegisterCityProvinceFields(
-                                    cityMunicipalityController:
-                                        _cityMunicipalityController,
-                                    provinceController: _provinceController,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  RegisterCoordinatesFields(
-                                    latitudeController: _latitudeController,
-                                    longitudeController: _longitudeController,
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  const RegisterSectionHeader(
-                                    title: 'Discount Details',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  RegisterDiscountTypeField(
-                                    selectedDiscountType: _selectedDiscountType,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedDiscountType = value;
-                                        _discountAmountController.clear();
-                                      });
-                                      _updateProgress();
-                                    },
-                                  ),
-                                  const SizedBox(height: 20),
-                                  RegisterDiscountAmountField(
-                                    controller: _discountAmountController,
-                                    selectedDiscountType: _selectedDiscountType,
-                                    onChanged: (_) => _updateProgress(),
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  const RegisterSectionHeader(
-                                    title: 'Partnership Details',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  RegisterSchoolPartnershipField(
-                                    offerToAllSchools: _offerToAllSchools,
-                                    schools: _schools,
-                                    selectedSchools: _selectedSchools,
-                                    isLoadingSchools: _isLoadingSchools,
-                                    loadErrorMessage: _schoolLoadError,
-                                    onOfferToAllSchoolsChanged: (value) {
-                                      setState(() {
-                                        _applyOfferToAllSelection(
-                                          value ?? false,
-                                        );
-                                      });
-                                      _updateProgress();
-                                    },
-                                    onSchoolToggled: (schoolName) {
-                                      setState(() {
-                                        if (_selectedSchools.contains(
-                                          schoolName,
-                                        )) {
-                                          _selectedSchools.remove(schoolName);
-                                        } else {
-                                          _selectedSchools.add(schoolName);
-                                        }
-                                        _syncOfferToAllFromSelection();
-                                      });
-                                      _updateProgress();
-                                    },
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  const RegisterSectionHeader(
-                                    title: 'Social Media & Online Presence',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  RegisterSocialMediaFields(
-                                    websiteController: _websiteController,
-                                    facebookController: _facebookController,
-                                    instagramController: _instagramController,
-                                    tiktokController: _tiktokController,
-                                    xController: _xController,
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  const RegisterSectionHeader(
-                                    title: 'Validity Period',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  RegisterValidityField(
-                                    isOngoing: _isOngoing,
-                                    startDate: _startDate,
-                                    endDate: _endDate,
-                                    onToggleOngoing: (value) {
-                                      setState(
-                                        () => _isOngoing = value ?? false,
-                                      );
-                                      _updateProgress();
-                                    },
-                                    onTapStartDate: () async {
-                                      final date = await showDatePicker(
-                                        context: context,
-                                        initialDate: DateTime.now(),
-                                        firstDate: DateTime.now(),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (date != null) {
-                                        setState(() => _startDate = date);
-                                        _updateProgress();
-                                      }
-                                    },
-                                    onTapEndDate: () async {
-                                      final date = await showDatePicker(
-                                        context: context,
-                                        initialDate:
-                                            _startDate ?? DateTime.now(),
-                                        firstDate: _startDate ?? DateTime.now(),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (date != null) {
-                                        setState(() => _endDate = date);
-                                        _updateProgress();
-                                      }
-                                    },
-                                  ),
-                                  const SizedBox(height: 40),
-
-                                  RegisterFormActions(
-                                    onSaveDraft: _saveDraft,
-                                    onSubmit: _submitRegistration,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
