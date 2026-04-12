@@ -8,6 +8,7 @@ import 'package:idiscount_website/services/auth_service.dart';
 import 'package:idiscount_website/services/business_service.dart';
 import 'package:idiscount_website/services/school_service.dart';
 import 'package:idiscount_website/viewmodels/register_form_view_model.dart';
+import 'package:image/image.dart' as img;
 import 'dart:html' as html;
 import 'dart:typed_data';
 
@@ -24,7 +25,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _businessService = BusinessService();
   final _schoolService = SchoolService();
   final _formViewModel = RegisterFormViewModel();
-  double _progress = 0.0;
 
   final _businessNameController = TextEditingController();
   final _websiteController = TextEditingController();
@@ -51,6 +51,10 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _schoolLoadError;
   String? _selectedPhotoFileName;
   Uint8List? _selectedPhotoData;
+  bool _isPhotoProcessing = false;
+  double _photoProcessingProgress = 0.0;
+  bool _isPhotoUploading = false;
+  double _photoUploadProgress = 0.0;
   String? _selectedCategory;
 
   List<String> get _allSchoolNames => _schools.map((s) => s.names).toList();
@@ -177,7 +181,6 @@ class _RegisterPageState extends State<RegisterPage> {
           _latitudeController.text = draft['latitude']?.toString() ?? '';
           _longitudeController.text = draft['longitude']?.toString() ?? '';
         });
-        _updateProgress();
       }
     } catch (e) {}
   }
@@ -268,22 +271,6 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  void _updateProgress() {
-    setState(() {
-      _progress = _formViewModel.computeProgress(
-        businessName: _businessNameController.text,
-        locations: _locations,
-        discountType: _selectedDiscountType,
-        discountAmount: _discountAmountController.text,
-        offerToAllSchools: _offerToAllSchools,
-        selectedSchools: _selectedSchools,
-        startDate: _startDate,
-        endDate: _endDate,
-        isOngoing: _isOngoing,
-      );
-    });
-  }
-
   Future<void> _pickPhotoFile() async {
     try {
       final html.FileUploadInputElement uploadInput =
@@ -296,37 +283,100 @@ class _RegisterPageState extends State<RegisterPage> {
         final files = uploadInput.files;
         if (files != null && files.isNotEmpty) {
           final file = files[0];
+          final fileName = file.name.toLowerCase();
+          final isSupported =
+              fileName.endsWith('.jpg') ||
+              fileName.endsWith('.jpeg') ||
+              fileName.endsWith('.png') ||
+              fileName.endsWith('.webp');
+
+          if (!isSupported) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Only JPG, PNG, and WEBP files are supported'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+
+          final fileSize = file.size ?? 0;
+          if (fileSize > 5 * 1024 * 1024) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('File size exceeds 5MB limit'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+
+          setState(() {
+            _isPhotoProcessing = true;
+            _photoProcessingProgress = 0.05;
+          });
+
           final reader = html.FileReader();
 
-          reader.onLoadEnd.listen((e) {
-            final fileSize = file.size ?? 0;
-
-            if (fileSize > 5 * 1024 * 1024) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('File size exceeds 5MB limit'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-              return;
-            }
-
-            final fileData = reader.result as Uint8List?;
-            if (fileData != null) {
+          reader.onProgress.listen((event) {
+            if (!mounted) return;
+            if (event.total != null && event.total! > 0) {
+              final progress = (event.loaded ?? 0) / event.total!;
               setState(() {
-                _selectedPhotoFileName = file.name;
-                _selectedPhotoData = fileData;
+                _photoProcessingProgress = 0.05 + (progress * 0.45);
+              });
+            }
+          });
+
+          reader.onLoadEnd.listen((e) async {
+            try {
+              final fileData = reader.result as Uint8List?;
+              if (fileData == null) {
+                throw Exception('Could not read selected file.');
+              }
+
+              if (!mounted) return;
+              setState(() {
+                _photoProcessingProgress = 0.65;
               });
 
+              final compressed = await _compressImageForUpload(
+                fileData,
+                file.type ?? '',
+                file.name,
+              );
+
+              if (!mounted) return;
+              setState(() {
+                _photoProcessingProgress = 1.0;
+                _selectedPhotoFileName = file.name;
+                _selectedPhotoData = compressed;
+              });
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Photo selected: ${file.name}'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } catch (err) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error processing photo: $err'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } finally {
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Photo selected: ${file.name}'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                setState(() {
+                  _isPhotoProcessing = false;
+                  _photoProcessingProgress = 0.0;
+                });
               }
             }
           });
@@ -344,6 +394,39 @@ class _RegisterPageState extends State<RegisterPage> {
         );
       }
     }
+  }
+
+  Future<Uint8List> _compressImageForUpload(
+    Uint8List bytes,
+    String mimeType,
+    String fileName,
+  ) async {
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) {
+      throw Exception('Unsupported image format.');
+    }
+
+    var processed = decoded;
+    const maxDimension = 1600;
+    if (processed.width > maxDimension || processed.height > maxDimension) {
+      if (processed.width >= processed.height) {
+        processed = img.copyResize(processed, width: maxDimension);
+      } else {
+        processed = img.copyResize(processed, height: maxDimension);
+      }
+    }
+
+    final lowerName = fileName.toLowerCase();
+    final isPng = mimeType.contains('png') || lowerName.endsWith('.png');
+
+    late Uint8List compressed;
+    if (isPng) {
+      compressed = Uint8List.fromList(img.encodePng(processed, level: 6));
+    } else {
+      compressed = Uint8List.fromList(img.encodeJpg(processed, quality: 82));
+    }
+
+    return compressed.length <= bytes.length ? compressed : bytes;
   }
 
   Future<void> _submitRegistration() async {
@@ -387,33 +470,25 @@ class _RegisterPageState extends State<RegisterPage> {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
+    setState(() {
+      _isPhotoUploading = true;
+      _photoUploadProgress = 0.0;
+    });
+
     try {
-      // Get current user ID
-      final authUserId = _authService.getCurrentUserId();
-      if (authUserId == null) {
-        throw Exception('User not authenticated');
-      }
-
-      // Generate business UID
-      final businessUid = DateTime.now().millisecondsSinceEpoch;
-      final locationUid = businessUid * 1000; // Simple location UID generation
-
-      // Build validity date (using first location for demo, adjust as needed)
-      final validityString = _formViewModel.buildValidityString(
+      final selectedCategory = _selectedCategory!;
+      await _businessService.submitBusinessRegistration(
+        businessName: _businessNameController.text.trim(),
+        categoryCode: BusinessCategory.codeForKey(selectedCategory),
+        category: selectedCategory,
+        locations: _locations,
+        discountType: _selectedDiscountType ?? 'percentage',
+        discountAmount: double.parse(_discountAmountController.text),
+        offerToAllSchools: _offerToAllSchools,
+        selectedSchools: _selectedSchools,
         startDate: _startDate!,
         endDate: _endDate,
         isOngoing: _isOngoing,
-      );
-
-      // Call Edge Function to register business
-      // Photo handling: for now, just pass filename; integrate storage later if needed
-      final selectedCategory = _selectedCategory!;
-      await _businessService.registerBusiness(
-        authUserId: authUserId,
-        uid: businessUid,
-        companyName: _businessNameController.text.trim(),
-        categoryCode: BusinessCategory.codeForKey(selectedCategory),
-        category: selectedCategory,
         website:
             _websiteController.text.isNotEmpty
                 ? _websiteController.text.trim()
@@ -431,13 +506,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ? _tiktokController.text.trim()
                 : null,
         x: _xController.text.isNotEmpty ? _xController.text.trim() : null,
-        groupName:
-            _offerToAllSchools ? 'All Schools' : _selectedSchools.join(', '),
-        validity: validityString,
-        businessImage:
-            _selectedPhotoFileName, // Store filename; implement storage later
-        locationUid: locationUid,
-        fullAddress: _locations[0], // Using first location; adjust for multiple
         cityMunicipality:
             _cityMunicipalityController.text.isNotEmpty
                 ? _cityMunicipalityController.text.trim()
@@ -454,6 +522,14 @@ class _RegisterPageState extends State<RegisterPage> {
             _longitudeController.text.isNotEmpty
                 ? double.tryParse(_longitudeController.text)
                 : null,
+        photoFileName: _selectedPhotoFileName,
+        photoData: _selectedPhotoData,
+        onUploadProgress: (value) {
+          if (!mounted) return;
+          setState(() {
+            _photoUploadProgress = value;
+          });
+        },
       );
 
       if (mounted) {
@@ -495,6 +571,13 @@ class _RegisterPageState extends State<RegisterPage> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPhotoUploading = false;
+          _photoUploadProgress = 0.0;
+        });
       }
     }
   }
@@ -609,25 +692,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: LinearProgressIndicator(
-                                    value: _progress,
-                                    minHeight: 8,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Completion: ${(_progress * 100).toStringAsFixed(0)}%',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
                                 Form(
                                   key: _formKey,
-                                  onChanged: _updateProgress,
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -643,8 +709,14 @@ class _RegisterPageState extends State<RegisterPage> {
                                       RegisterBusinessPhotoField(
                                         selectedPhotoFileName:
                                             _selectedPhotoFileName,
+                                        selectedPhotoData: _selectedPhotoData,
                                         hasPhotoData:
                                             _selectedPhotoData != null,
+                                        isProcessing: _isPhotoProcessing,
+                                        processingProgress:
+                                            _photoProcessingProgress,
+                                        isUploading: _isPhotoUploading,
+                                        uploadProgress: _photoUploadProgress,
                                         onPickPhoto: _pickPhotoFile,
                                         onRemovePhoto: () {
                                           setState(() {
@@ -668,7 +740,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                               _locations.add(value.trim());
                                               _locationController.clear();
                                             });
-                                            _updateProgress();
                                           }
                                         },
                                         onAdd: () {
@@ -679,14 +750,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                               _locations.add(address);
                                               _locationController.clear();
                                             });
-                                            _updateProgress();
                                           }
                                         },
                                         onRemove: (index) {
                                           setState(
                                             () => _locations.removeAt(index),
                                           );
-                                          _updateProgress();
                                         },
                                       ),
                                       const SizedBox(height: 20),
@@ -707,23 +776,33 @@ class _RegisterPageState extends State<RegisterPage> {
                                         title: 'Discount Details',
                                       ),
                                       const SizedBox(height: 16),
-                                      RegisterDiscountTypeField(
-                                        selectedDiscountType:
-                                            _selectedDiscountType,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedDiscountType = value;
-                                            _discountAmountController.clear();
-                                          });
-                                          _updateProgress();
-                                        },
-                                      ),
-                                      const SizedBox(height: 20),
-                                      RegisterDiscountAmountField(
-                                        controller: _discountAmountController,
-                                        selectedDiscountType:
-                                            _selectedDiscountType,
-                                        onChanged: (_) => _updateProgress(),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: RegisterDiscountAmountField(
+                                              controller:
+                                                  _discountAmountController,
+                                              selectedDiscountType:
+                                                  _selectedDiscountType,
+                                              onChanged: (_) {},
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          SizedBox(
+                                            width: 140,
+                                            child: RegisterDiscountTypeField(
+                                              selectedDiscountType:
+                                                  _selectedDiscountType,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _selectedDiscountType = value;
+                                                  _discountAmountController
+                                                      .clear();
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const SizedBox(height: 32),
 
@@ -743,7 +822,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                               value ?? false,
                                             );
                                           });
-                                          _updateProgress();
                                         },
                                         onSchoolToggled: (schoolName) {
                                           setState(() {
@@ -758,7 +836,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                             }
                                             _syncOfferToAllFromSelection();
                                           });
-                                          _updateProgress();
                                         },
                                       ),
                                       const SizedBox(height: 32),
@@ -789,7 +866,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                           setState(
                                             () => _isOngoing = value ?? false,
                                           );
-                                          _updateProgress();
                                         },
                                         onTapStartDate: () async {
                                           final date = await showDatePicker(
@@ -800,7 +876,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                           );
                                           if (date != null) {
                                             setState(() => _startDate = date);
-                                            _updateProgress();
                                           }
                                         },
                                         onTapEndDate: () async {
@@ -814,7 +889,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                           );
                                           if (date != null) {
                                             setState(() => _endDate = date);
-                                            _updateProgress();
                                           }
                                         },
                                       ),
@@ -847,7 +921,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return TextFormField(
       controller: _businessNameController,
       decoration: InputDecoration(
-        labelText: 'Business Name (Required)',
+        labelText: 'Business Name *',
         hintText: 'Enter your business name',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         helperText: '3-100 characters',
@@ -861,7 +935,6 @@ class _RegisterPageState extends State<RegisterPage> {
         }
         return null;
       },
-      onChanged: (_) => _updateProgress(),
     );
   }
 
@@ -869,7 +942,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return DropdownButtonFormField<String>(
       value: _selectedCategory,
       decoration: InputDecoration(
-        labelText: 'Category (Required)',
+        labelText: 'Category *',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
       items:
@@ -885,7 +958,6 @@ class _RegisterPageState extends State<RegisterPage> {
         setState(() {
           _selectedCategory = value;
         });
-        _updateProgress();
       },
       validator: (value) {
         if (value == null || value.isEmpty) {

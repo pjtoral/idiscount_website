@@ -262,6 +262,7 @@ class BusinessService {
     double? longitude,
     String? photoFileName,
     Uint8List? photoData,
+    void Function(double value)? onUploadProgress,
   }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) {
@@ -272,6 +273,7 @@ class BusinessService {
 
     if (photoData != null && photoFileName != null) {
       try {
+        onUploadProgress?.call(0.1);
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final safeFileName =
             photoFileName
@@ -280,13 +282,16 @@ class BusinessService {
         final storagePath =
             'business_photos/${user.id}/$timestamp-$safeFileName';
 
+        onUploadProgress?.call(0.35);
         await _supabase.storage
             .from(_businessPhotosBucket)
             .uploadBinary(storagePath, photoData);
 
+        onUploadProgress?.call(0.9);
         photoUrl = _supabase.storage
             .from(_businessPhotosBucket)
             .getPublicUrl(storagePath);
+        onUploadProgress?.call(1.0);
       } on StorageException catch (e) {
         throw Exception(
           'Photo upload failed (${e.statusCode}): ${e.message}. '

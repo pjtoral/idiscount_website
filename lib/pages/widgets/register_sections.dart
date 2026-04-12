@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:idiscount_website/models/school_option.dart';
+import 'dart:typed_data';
 
 class RegisterSectionHeader extends StatelessWidget {
   final String title;
@@ -125,7 +126,7 @@ class RegisterDiscountTypeField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: selectedDiscountType,
       decoration: InputDecoration(
-        labelText: 'Discount Type (Required)',
+        labelText: 'Discount Type *',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
       items: const [
@@ -160,7 +161,7 @@ class RegisterDiscountAmountField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
-        labelText: 'Discount Amount (Required)',
+        labelText: 'Discount Amount *',
         hintText: isPercentage ? '0 to 100' : '00.00',
         suffix: Text(isPercentage ? '%' : 'PHP'),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -250,14 +251,24 @@ class RegisterSocialMediaFields extends StatelessWidget {
 
 class RegisterBusinessPhotoField extends StatelessWidget {
   final String? selectedPhotoFileName;
+  final Uint8List? selectedPhotoData;
   final bool hasPhotoData;
+  final bool isProcessing;
+  final double processingProgress;
+  final bool isUploading;
+  final double uploadProgress;
   final VoidCallback onPickPhoto;
   final VoidCallback onRemovePhoto;
 
   const RegisterBusinessPhotoField({
     super.key,
     required this.selectedPhotoFileName,
+    required this.selectedPhotoData,
     required this.hasPhotoData,
+    required this.isProcessing,
+    required this.processingProgress,
+    required this.isUploading,
+    required this.uploadProgress,
     required this.onPickPhoto,
     required this.onRemovePhoto,
   });
@@ -268,7 +279,7 @@ class RegisterBusinessPhotoField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Business Photo (Required)',
+          'Business Photo *',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -284,6 +295,17 @@ class RegisterBusinessPhotoField extends StatelessWidget {
                 if (selectedPhotoFileName != null && hasPhotoData)
                   Column(
                     children: [
+                      if (selectedPhotoData != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            selectedPhotoData!,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      if (selectedPhotoData != null) const SizedBox(height: 12),
                       const Icon(
                         Icons.check_circle,
                         size: 48,
@@ -299,15 +321,35 @@ class RegisterBusinessPhotoField extends StatelessWidget {
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      if (isProcessing) ...[
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: processingProgress),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Optimizing image...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                      if (isUploading) ...[
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: uploadProgress),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Uploading image...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
-                        onPressed: onPickPhoto,
+                        onPressed:
+                            isProcessing || isUploading ? null : onPickPhoto,
                         icon: const Icon(Icons.edit),
                         label: const Text('Change Photo'),
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton.icon(
-                        onPressed: onRemovePhoto,
+                        onPressed:
+                            isProcessing || isUploading ? null : onRemovePhoto,
                         icon: const Icon(Icons.close),
                         label: const Text('Remove'),
                         style: ElevatedButton.styleFrom(
@@ -321,9 +363,28 @@ class RegisterBusinessPhotoField extends StatelessWidget {
                   Column(
                     children: [
                       const Icon(Icons.image, size: 48, color: Colors.grey),
+                      if (isProcessing) ...[
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: processingProgress),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Optimizing image...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                      if (isUploading) ...[
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: uploadProgress),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Uploading image...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
-                        onPressed: onPickPhoto,
+                        onPressed:
+                            isProcessing || isUploading ? null : onPickPhoto,
                         icon: const Icon(Icons.upload),
                         label: const Text('Upload Photo'),
                       ),
@@ -365,7 +426,7 @@ class RegisterLocationsField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Location/s (Required)',
+          'Location/s *',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -467,7 +528,7 @@ class RegisterSchoolPartnershipField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'School Partnership (Required)',
+          'School Partnership *',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -556,10 +617,7 @@ class RegisterValidityField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Validity (Required)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        const Text('Validity *', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         CheckboxListTile(
           title: const Text('Ongoing (No end date)'),

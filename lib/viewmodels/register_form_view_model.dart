@@ -1,29 +1,4 @@
 class RegisterFormViewModel {
-  double computeProgress({
-    required String businessName,
-    required List<String> locations,
-    required String? discountType,
-    required String discountAmount,
-    required bool offerToAllSchools,
-    required List<String> selectedSchools,
-    required DateTime? startDate,
-    required DateTime? endDate,
-    required bool isOngoing,
-  }) {
-    int filledFields = 0;
-    const int totalFields = 8;
-
-    if (businessName.trim().isNotEmpty) filledFields++;
-    if (locations.isNotEmpty) filledFields++;
-    if (discountType != null) filledFields++;
-    if (discountAmount.trim().isNotEmpty) filledFields++;
-    if (offerToAllSchools || selectedSchools.isNotEmpty) filledFields++;
-    if (startDate != null) filledFields++;
-    if (isOngoing || endDate != null) filledFields++;
-
-    return filledFields / totalFields;
-  }
-
   String? validateBeforeSubmit({
     required bool formValid,
     required List<String> locations,
