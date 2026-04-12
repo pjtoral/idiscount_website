@@ -99,6 +99,7 @@ class BusinessService {
     String? categoryCode,
     String? category,
     required List<String> locations,
+    List<Map<String, dynamic>>? locationDetails,
     required String discountType,
     required double discountAmount,
     required bool offerToAllSchools,
@@ -152,15 +153,20 @@ class BusinessService {
 
     await _supabase.from('business_addresses').delete().eq('uid', businessUid);
     for (var i = 0; i < locations.length; i++) {
+      final detail =
+          (locationDetails != null && i < locationDetails.length)
+              ? locationDetails[i]
+              : null;
+
       await _supabase.from('business_addresses').insert({
         'location_uid': _generateLocationUid(businessUid, i + 1),
         'uid': businessUid,
         'company_name': businessName,
-        'full_address': locations[i],
-        'city_municipality': cityMunicipality,
-        'province': province,
-        'latitude': latitude,
-        'longitude': longitude,
+        'full_address': detail?['full_address'] ?? locations[i],
+        'city_municipality': detail?['city_municipality'] ?? cityMunicipality,
+        'province': detail?['province'] ?? province,
+        'latitude': detail?['latitude'] ?? latitude,
+        'longitude': detail?['longitude'] ?? longitude,
       });
     }
 
@@ -172,6 +178,7 @@ class BusinessService {
     String? categoryCode,
     String? category,
     required List<String> locations,
+    List<Map<String, dynamic>>? locationDetails,
     required String discountType,
     required double discountAmount,
     required bool offerToAllSchools,
@@ -203,6 +210,7 @@ class BusinessService {
       categoryCode: categoryCode,
       category: category,
       locations: locations,
+      locationDetails: locationDetails,
       discountType: discountType,
       discountAmount: discountAmount,
       offerToAllSchools: offerToAllSchools,
@@ -244,6 +252,7 @@ class BusinessService {
     String? categoryCode,
     String? category,
     required List<String> locations,
+    List<Map<String, dynamic>>? locationDetails,
     required String discountType,
     required double discountAmount,
     required bool offerToAllSchools,
@@ -311,6 +320,7 @@ class BusinessService {
       categoryCode: categoryCode,
       category: category,
       locations: locations,
+      locationDetails: locationDetails,
       discountType: discountType,
       discountAmount: discountAmount,
       offerToAllSchools: offerToAllSchools,

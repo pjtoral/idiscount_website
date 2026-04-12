@@ -8,7 +8,9 @@ import 'package:idiscount_website/services/auth_service.dart';
 import 'package:idiscount_website/services/business_service.dart';
 import 'package:idiscount_website/services/school_service.dart';
 import 'package:idiscount_website/viewmodels/register_form_view_model.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:image/image.dart' as img;
+import 'package:latlong2/latlong.dart';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
@@ -45,6 +47,11 @@ class _RegisterPageState extends State<RegisterPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   List<String> _locations = [];
+  final List<LocationEntry> _locationEntries = [];
+  List<AddressSuggestion> _addressSuggestions = [];
+  bool _isSearchingAddresses = false;
+  bool _isAddingLocation = false;
+  int _primaryLocationIndex = -1;
   List<String> _selectedSchools = [];
   List<SchoolOption> _schools = [];
   bool _isLoadingSchools = true;
@@ -56,6 +63,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isPhotoUploading = false;
   double _photoUploadProgress = 0.0;
   String? _selectedCategory;
+  static const LatLng _defaultMapCenter = LatLng(14.5995, 120.9842);
 
   List<String> get _allSchoolNames => _schools.map((s) => s.names).toList();
 
@@ -159,6 +167,18 @@ class _RegisterPageState extends State<RegisterPage> {
           _businessNameController.text = draft['business_name'] ?? '';
           _selectedCategory = BusinessCategory.normalizeKey(draft['category']);
           _locations = List<String>.from(draft['locations'] ?? []);
+          _locationEntries
+            ..clear()
+            ..addAll(
+              _locations.map((address) => LocationEntry(address: address)),
+            );
+          if (_locationEntries.isNotEmpty) {
+            _primaryLocationIndex = 0;
+            _locationEntries[0].isPrimary = true;
+            _locationEntries[0].cityMunicipality =
+                draft['city_municipality']?.toString();
+            _locationEntries[0].province = draft['province']?.toString();
+          }
           _selectedDiscountType = draft['discount_type'];
           _discountAmountController.text =
               draft['discount_amount']?.toString() ?? '';
@@ -180,9 +200,536 @@ class _RegisterPageState extends State<RegisterPage> {
           _provinceController.text = draft['province'] ?? '';
           _latitudeController.text = draft['latitude']?.toString() ?? '';
           _longitudeController.text = draft['longitude']?.toString() ?? '';
+          if (_locationEntries.isNotEmpty) {
+            final lat = double.tryParse(_latitudeController.text);
+            final lng = double.tryParse(_longitudeController.text);
+            if (lat != null && lng != null) {
+              _locationEntries[0].latitude = lat;
+              _locationEntries[0].longitude = lng;
+            }
+          }
         });
       }
     } catch (e) {}
+  }
+
+  Future<void> _searchAddressSuggestions(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.length < 3) {
+      if (!mounted) return;
+      setState(() {
+        _addressSuggestions = [];
+        _isSearchingAddresses = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingAddresses = true;
+    });
+
+    try {
+      final suggestions = await _formViewModel.fetchAddressSuggestions(trimmed);
+      if (!mounted) return;
+      setState(() {
+        _addressSuggestions = suggestions;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _addressSuggestions = [];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppErrorService.toMessage(
+              e,
+              fallback: 'Unable to load place suggestions right now.',
+            ),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearchingAddresses = false;
+        });
+      }
+    }
+  }
+
+  void _selectAddressSuggestion(AddressSuggestion suggestion) {
+    setState(() {
+      _locationController.text = suggestion.address;
+      _latitudeController.text = suggestion.latitude.toStringAsFixed(6);
+      _longitudeController.text = suggestion.longitude.toStringAsFixed(6);
+      _addressSuggestions = [];
+    });
+  }
+
+  void _syncLocationsList() {
+    _locations = _locationEntries.map((entry) => entry.address).toList();
+  }
+
+  List<Map<String, dynamic>> _buildLocationDetailsPayload() {
+    return _locationEntries
+        .map(
+          (entry) => {
+            'full_address': entry.address,
+            'city_municipality': entry.cityMunicipality,
+            'province': entry.province,
+            'latitude': entry.latitude,
+            'longitude': entry.longitude,
+          },
+        )
+        .toList();
+  }
+
+  void _startAddingLocation() {
+    setState(() {
+      _isAddingLocation = true;
+      _locationController.clear();
+      _cityMunicipalityController.clear();
+      _provinceController.clear();
+      _latitudeController.clear();
+      _longitudeController.clear();
+      _addressSuggestions = [];
+    });
+  }
+
+  void _cancelAddingLocation() {
+    setState(() {
+      _isAddingLocation = false;
+      _locationController.clear();
+      _cityMunicipalityController.clear();
+      _provinceController.clear();
+      _latitudeController.clear();
+      _longitudeController.clear();
+      _addressSuggestions = [];
+    });
+  }
+
+  void _addLocation() {
+    final address = _locationController.text.trim();
+    final cityMunicipality = _cityMunicipalityController.text.trim();
+    final province = _provinceController.text.trim();
+
+    if (address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select or enter an address first.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (cityMunicipality.isEmpty || province.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter municipality and province.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final lat = double.tryParse(_latitudeController.text.trim());
+    final lng = double.tryParse(_longitudeController.text.trim());
+    if (!_formViewModel.isValidLatitude(lat) ||
+        !_formViewModel.isValidLongitude(lng)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide valid latitude and longitude.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      final entry = _formViewModel.createLocationEntry(
+        address: address,
+        cityMunicipality: cityMunicipality,
+        province: province,
+        latitude: lat,
+        longitude: lng,
+        isPrimary: _locationEntries.isEmpty,
+      );
+      _locationEntries.add(entry);
+
+      if (_locationEntries.length == 1) {
+        _primaryLocationIndex = 0;
+      }
+
+      _syncLocationsList();
+      _locationController.clear();
+      _cityMunicipalityController.clear();
+      _provinceController.clear();
+      _latitudeController.clear();
+      _longitudeController.clear();
+      _isAddingLocation = false;
+      _addressSuggestions = [];
+    });
+  }
+
+  void _setPrimaryLocation(int index) {
+    setState(() {
+      _formViewModel.setPrimaryLocation(_locationEntries, index);
+      _primaryLocationIndex = index;
+
+      final primary = _locationEntries[index];
+      _cityMunicipalityController.text = primary.cityMunicipality ?? '';
+      _provinceController.text = primary.province ?? '';
+      if (primary.latitude != null && primary.longitude != null) {
+        _latitudeController.text = primary.latitude!.toStringAsFixed(6);
+        _longitudeController.text = primary.longitude!.toStringAsFixed(6);
+      }
+    });
+  }
+
+  void _removeLocationAt(int index) {
+    setState(() {
+      _formViewModel.removeLocationAt(
+        _locationEntries,
+        index,
+        currentPrimaryIndex: _primaryLocationIndex,
+      );
+
+      if (_locationEntries.isEmpty) {
+        _primaryLocationIndex = -1;
+      } else {
+        if (_primaryLocationIndex == index) {
+          _primaryLocationIndex = 0;
+        } else if (_primaryLocationIndex > index) {
+          _primaryLocationIndex -= 1;
+        }
+
+        final primary = _locationEntries[_primaryLocationIndex];
+        _cityMunicipalityController.text = primary.cityMunicipality ?? '';
+        _provinceController.text = primary.province ?? '';
+        if (primary.latitude != null && primary.longitude != null) {
+          _latitudeController.text = primary.latitude!.toStringAsFixed(6);
+          _longitudeController.text = primary.longitude!.toStringAsFixed(6);
+        }
+      }
+
+      _syncLocationsList();
+    });
+  }
+
+  void _updateCoordinatesFromMap(LatLng point) {
+    setState(() {
+      _latitudeController.text = point.latitude.toStringAsFixed(6);
+      _longitudeController.text = point.longitude.toStringAsFixed(6);
+
+      if (!_isAddingLocation &&
+          _primaryLocationIndex >= 0 &&
+          _primaryLocationIndex < _locationEntries.length) {
+        _locationEntries[_primaryLocationIndex].latitude = point.latitude;
+        _locationEntries[_primaryLocationIndex].longitude = point.longitude;
+      }
+    });
+  }
+
+  Widget _buildLocationsField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Location/s *',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        if (!_isAddingLocation)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ElevatedButton.icon(
+              onPressed: _startAddingLocation,
+              icon: const Icon(Icons.add),
+              label: const Text('Add location'),
+            ),
+          ),
+        if (_isAddingLocation) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _locationController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Address *',
+                    hintText: 'Search address...',
+                    prefixIcon: const Icon(Icons.location_on),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onChanged: _searchAddressSuggestions,
+                ),
+                if (_isSearchingAddresses) ...[
+                  const SizedBox(height: 8),
+                  const LinearProgressIndicator(minHeight: 2),
+                ],
+                if (_addressSuggestions.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _addressSuggestions.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = _addressSuggestions[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            item.address,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => _selectAddressSuggestion(item),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _cityMunicipalityController,
+                        decoration: InputDecoration(
+                          labelText: 'Municipality/City *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _provinceController,
+                        decoration: InputDecoration(
+                          labelText: 'Province *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildCoordinatesAndMapSection(),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: _cancelAddingLocation,
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _addLocation,
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        if (_locationEntries.isEmpty)
+          Text(
+            'At least one location is required.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _locationEntries.length,
+            itemBuilder: (context, index) {
+              final location = _locationEntries[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Radio<int>(
+                      value: index,
+                      groupValue: _primaryLocationIndex,
+                      onChanged: (value) {
+                        if (value != null) {
+                          _setPrimaryLocation(value);
+                        }
+                      },
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            location.address,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            [location.cityMunicipality, location.province]
+                                .where(
+                                  (item) =>
+                                      item != null && item.trim().isNotEmpty,
+                                )
+                                .join(', '),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            location.isPrimary
+                                ? 'Primary location'
+                                : 'Set as primary',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle),
+                      onPressed: () => _removeLocationAt(index),
+                      splashRadius: 20,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCoordinatesAndMapSection() {
+    final lat = double.tryParse(_latitudeController.text.trim());
+    final lng = double.tryParse(_longitudeController.text.trim());
+    final hasValidPoint =
+        _formViewModel.isValidLatitude(lat) &&
+        _formViewModel.isValidLongitude(lng);
+    final safeLat = hasValidPoint ? lat! : _defaultMapCenter.latitude;
+    final safeLng = hasValidPoint ? lng! : _defaultMapCenter.longitude;
+    final mapCenter = hasValidPoint ? LatLng(lat!, lng!) : _defaultMapCenter;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Latitude *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  hasValidPoint
+                      ? safeLat.toStringAsFixed(6)
+                      : 'Tap map to set latitude',
+                  style: TextStyle(
+                    color: hasValidPoint ? Colors.black87 : Colors.grey[600],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Longitude *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  hasValidPoint
+                      ? safeLng.toStringAsFixed(6)
+                      : 'Tap map to set longitude',
+                  style: TextStyle(
+                    color: hasValidPoint ? Colors.black87 : Colors.grey[600],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Map Preview (tap to place or adjust pin location)',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 220,
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: mapCenter,
+                initialZoom: hasValidPoint ? 15 : 12,
+                onTap: (_, point) => _updateCoordinatesFromMap(point),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.idiscount.website',
+                ),
+                if (hasValidPoint)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 44,
+                        height: 44,
+                        point: LatLng(safeLat, safeLng),
+                        child: const Icon(
+                          Icons.location_pin,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _saveDraft() async {
@@ -199,6 +746,7 @@ class _RegisterPageState extends State<RegisterPage> {
         categoryCode: BusinessCategory.codeForKey(selectedCategory),
         category: selectedCategory,
         locations: _locations,
+        locationDetails: _buildLocationDetailsPayload(),
         discountType: _selectedDiscountType ?? 'percentage',
         discountAmount:
             _discountAmountController.text.isNotEmpty
@@ -482,6 +1030,7 @@ class _RegisterPageState extends State<RegisterPage> {
         categoryCode: BusinessCategory.codeForKey(selectedCategory),
         category: selectedCategory,
         locations: _locations,
+        locationDetails: _buildLocationDetailsPayload(),
         discountType: _selectedDiscountType ?? 'percentage',
         discountAmount: double.parse(_discountAmountController.text),
         offerToAllSchools: _offerToAllSchools,
@@ -509,11 +1058,11 @@ class _RegisterPageState extends State<RegisterPage> {
         cityMunicipality:
             _cityMunicipalityController.text.isNotEmpty
                 ? _cityMunicipalityController.text.trim()
-                : '',
+                : null,
         province:
             _provinceController.text.isNotEmpty
                 ? _provinceController.text.trim()
-                : '',
+                : null,
         latitude:
             _latitudeController.text.isNotEmpty
                 ? double.tryParse(_latitudeController.text)
@@ -731,45 +1280,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                         title: 'Location Information',
                                       ),
                                       const SizedBox(height: 16),
-                                      RegisterLocationsField(
-                                        locationController: _locationController,
-                                        locations: _locations,
-                                        onSubmitted: (value) {
-                                          if (value.trim().isNotEmpty) {
-                                            setState(() {
-                                              _locations.add(value.trim());
-                                              _locationController.clear();
-                                            });
-                                          }
-                                        },
-                                        onAdd: () {
-                                          final address =
-                                              _locationController.text.trim();
-                                          if (address.isNotEmpty) {
-                                            setState(() {
-                                              _locations.add(address);
-                                              _locationController.clear();
-                                            });
-                                          }
-                                        },
-                                        onRemove: (index) {
-                                          setState(
-                                            () => _locations.removeAt(index),
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(height: 20),
-                                      RegisterCityProvinceFields(
-                                        cityMunicipalityController:
-                                            _cityMunicipalityController,
-                                        provinceController: _provinceController,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      RegisterCoordinatesFields(
-                                        latitudeController: _latitudeController,
-                                        longitudeController:
-                                            _longitudeController,
-                                      ),
+                                      _buildLocationsField(),
                                       const SizedBox(height: 32),
 
                                       const RegisterSectionHeader(
