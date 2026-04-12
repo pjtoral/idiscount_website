@@ -599,8 +599,7 @@ class RegisterValidityField extends StatelessWidget {
   final DateTime? startDate;
   final DateTime? endDate;
   final ValueChanged<bool?> onToggleOngoing;
-  final VoidCallback onTapStartDate;
-  final VoidCallback onTapEndDate;
+  final VoidCallback onTapDateRange;
 
   const RegisterValidityField({
     super.key,
@@ -608,8 +607,7 @@ class RegisterValidityField extends StatelessWidget {
     required this.startDate,
     required this.endDate,
     required this.onToggleOngoing,
-    required this.onTapStartDate,
-    required this.onTapEndDate,
+    required this.onTapDateRange,
   });
 
   @override
@@ -624,43 +622,25 @@ class RegisterValidityField extends StatelessWidget {
           value: isOngoing,
           onChanged: onToggleOngoing,
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: onTapStartDate,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    startDate?.toString().split(' ')[0] ?? 'Select Start Date',
-                  ),
-                ),
+        if (!isOngoing) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: onTapDateRange,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                (startDate != null && endDate != null)
+                    ? '${startDate!.toString().split(' ')[0]} to ${endDate!.toString().split(' ')[0]}'
+                    : 'Select Validity Date Range',
               ),
             ),
-            const SizedBox(width: 12),
-            if (!isOngoing)
-              Expanded(
-                child: GestureDetector(
-                  onTap: onTapEndDate,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      endDate?.toString().split(' ')[0] ?? 'Select End Date',
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ],
     );
   }

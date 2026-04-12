@@ -11,6 +11,7 @@ import 'package:idiscount_website/viewmodels/register_form_view_model.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image/image.dart' as img;
 import 'package:latlong2/latlong.dart';
+import 'dart:ui';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
@@ -977,6 +978,139 @@ class _RegisterPageState extends State<RegisterPage> {
     return compressed.length <= bytes.length ? compressed : bytes;
   }
 
+  Future<DateTimeRange?> _showBlurredDateRangeModal() async {
+    final now = DateTime.now();
+    var tempStart = _startDate ?? now;
+    var tempEnd = _endDate ?? tempStart.add(const Duration(days: 30));
+    var selectingStart = true;
+
+    return showGeneralDialog<DateTimeRange>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Close date range modal',
+      barrierColor: Colors.black26,
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (context, _, __) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final pickerDate = selectingStart ? tempStart : tempEnd;
+            final firstDate = selectingStart ? now : tempStart;
+
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Select Validity Date Range',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      'Start: ${tempStart.toString().split(' ')[0]}',
+                                    ),
+                                    selected: selectingStart,
+                                    onSelected:
+                                        (_) => setModalState(
+                                          () => selectingStart = true,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      'End: ${tempEnd.toString().split(' ')[0]}',
+                                    ),
+                                    selected: !selectingStart,
+                                    onSelected:
+                                        (_) => setModalState(
+                                          () => selectingStart = false,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            CalendarDatePicker(
+                              initialDate:
+                                  pickerDate.isBefore(firstDate)
+                                      ? firstDate
+                                      : pickerDate,
+                              firstDate: firstDate,
+                              lastDate: DateTime(2100),
+                              onDateChanged: (date) {
+                                setModalState(() {
+                                  if (selectingStart) {
+                                    tempStart = date;
+                                    if (tempEnd.isBefore(tempStart)) {
+                                      tempEnd = tempStart;
+                                    }
+                                  } else {
+                                    tempEnd = date;
+                                  }
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Cancel'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed:
+                                      () => Navigator.of(context).pop(
+                                        DateTimeRange(
+                                          start: tempStart,
+                                          end: tempEnd,
+                                        ),
+                                      ),
+                                  child: const Text('Apply'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      transitionBuilder: (context, animation, _, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
+  }
+
   Future<void> _submitRegistration() async {
     final isVerified = await _authService.refreshAndCheckEmailVerified();
     if (!mounted) return;
@@ -1374,32 +1508,24 @@ class _RegisterPageState extends State<RegisterPage> {
                                         startDate: _startDate,
                                         endDate: _endDate,
                                         onToggleOngoing: (value) {
-                                          setState(
-                                            () => _isOngoing = value ?? false,
-                                          );
+                                          setState(() {
+                                            _isOngoing = value ?? false;
+                                            if (_isOngoing) {
+                                              _endDate = null;
+                                              _startDate ??= DateTime.now();
+                                            }
+                                          });
                                         },
-                                        onTapStartDate: () async {
-                                          final date = await showDatePicker(
-                                            context: context,
-                                            initialDate: DateTime.now(),
-                                            firstDate: DateTime.now(),
-                                            lastDate: DateTime(2100),
-                                          );
-                                          if (date != null) {
-                                            setState(() => _startDate = date);
-                                          }
-                                        },
-                                        onTapEndDate: () async {
-                                          final date = await showDatePicker(
-                                            context: context,
-                                            initialDate:
-                                                _startDate ?? DateTime.now(),
-                                            firstDate:
-                                                _startDate ?? DateTime.now(),
-                                            lastDate: DateTime(2100),
-                                          );
-                                          if (date != null) {
-                                            setState(() => _endDate = date);
+                                        onTapDateRange: () async {
+                                          final picked =
+                                              await _showBlurredDateRangeModal();
+
+                                          if (picked != null) {
+                                            setState(() {
+                                              _startDate = picked.start;
+                                              _endDate = picked.end;
+                                              _isOngoing = false;
+                                            });
                                           }
                                         },
                                       ),
