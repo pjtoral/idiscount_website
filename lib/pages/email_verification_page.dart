@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
+import 'package:idiscount_website/services/register_route_gate.dart';
 
 class EmailVerificationPage extends StatefulWidget {
   final String? email;
@@ -141,7 +142,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/register');
+        context.go(RegisterRouteGate.buildRegisterPath());
       }
     } catch (e) {
       if (mounted) {

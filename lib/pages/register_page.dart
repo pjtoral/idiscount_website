@@ -136,7 +136,7 @@ class _RegisterPageState extends State<RegisterPage> {
           backgroundColor: Colors.orange,
         ),
       );
-      context.go('/email-verification');
+      context.go('/error-verification');
       return;
     }
 
@@ -1122,7 +1122,7 @@ class _RegisterPageState extends State<RegisterPage> {
           backgroundColor: Colors.orange,
         ),
       );
-      context.go('/email-verification');
+      context.go('/error-verification');
       return;
     }
 

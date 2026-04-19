@@ -5,6 +5,7 @@ import 'package:idiscount_website/pages/widgets/dashboard_chrome.dart';
 import 'package:idiscount_website/pages/widgets/dashboard_sections.dart';
 import 'package:idiscount_website/viewmodels/dashboard_view_model.dart';
 import 'package:idiscount_website/pages/edit_business_dialog.dart';
+import 'package:idiscount_website/services/register_route_gate.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userEmail;
@@ -40,7 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!mounted) return;
 
     if (loadState == DashboardLoadState.needsRegistration) {
-      context.go('/register');
+      context.go(RegisterRouteGate.buildRegisterPath());
       return;
     }
 

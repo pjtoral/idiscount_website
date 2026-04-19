@@ -10,8 +10,10 @@ import 'package:idiscount_website/terms_and_condition/terms.dart';
 import 'package:idiscount_website/pages/login_page.dart';
 import 'package:idiscount_website/pages/signup_page.dart';
 import 'package:idiscount_website/pages/email_verification_page.dart';
+import 'package:idiscount_website/pages/error_verification.dart';
 import 'package:idiscount_website/pages/register_page.dart';
 import 'package:idiscount_website/pages/dashboard_page.dart';
+import 'package:idiscount_website/services/register_route_gate.dart';
 
 // theme
 import 'package:idiscount_website/theme/app_theme.dart';
@@ -58,12 +60,23 @@ class MyApp extends StatelessWidget {
               ),
         ),
         GoRoute(
+          path: '/error-verification',
+          builder: (context, state) => const ErrorVerificationPage(),
+        ),
+        GoRoute(
           path: '/register',
-          builder: (context, state) {
+          redirect: (context, state) {
             final user = Supabase.instance.client.auth.currentUser;
+            final gateToken = state.uri.queryParameters['gate'];
             if (user == null || user.emailConfirmedAt == null) {
-              return const EmailVerificationPage();
+              return '/error-verification';
             }
+            if (!RegisterRouteGate.isValid(gateToken)) {
+              return '/error-verification';
+            }
+            return null;
+          },
+          builder: (context, state) {
             return const RegisterPage();
           },
         ),
