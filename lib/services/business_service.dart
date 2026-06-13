@@ -31,10 +31,22 @@ class BusinessService {
     return null;
   }
 
-  Future<void> _saveCurrentUserBusinessId(int businessId) async {
-    await _supabase.auth.updateUser(
-      UserAttributes(data: {'business_uid': businessId}),
-    );
+  Future<void> _saveCurrentUserBusinessId(
+    int businessId, {
+    String? registrationStatus,
+  }) async {
+    final data = <String, dynamic>{'business_uid': businessId};
+    if (registrationStatus != null) {
+      data['registration_status'] = registrationStatus;
+    }
+
+    await _supabase.auth.updateUser(UserAttributes(data: data));
+  }
+
+  String? _getRegistrationStatus() {
+    final user = _supabase.auth.currentUser;
+    final status = user?.userMetadata?['registration_status'];
+    return status?.toString();
   }
 
   int _generateBusinessUid() {
@@ -228,6 +240,8 @@ class BusinessService {
       latitude: latitude,
       longitude: longitude,
     );
+
+    await _saveCurrentUserBusinessId(businessUid, registrationStatus: 'draft');
   }
 
   Future<Map<String, dynamic>?> loadDraft() async {
@@ -235,16 +249,46 @@ class BusinessService {
   }
 
   Future<bool> hasCompletedRegistration() async {
+    final registrationStatus = _getRegistrationStatus();
+    if (registrationStatus == 'submitted') {
+      return true;
+    }
+
     final businessId = await _resolveCurrentUserBusinessId();
     if (businessId == null) return false;
 
     final existing =
         await _supabase
             .from('business_names')
-            .select('uid')
+            .select('uid, business_image')
             .eq('uid', businessId)
             .maybeSingle();
-    return existing != null;
+    if (existing == null) return false;
+
+    return existing['business_image'] != null;
+  }
+
+  Future<bool> hasSavedDraft() async {
+    final registrationStatus = _getRegistrationStatus();
+    if (registrationStatus == 'draft') {
+      return true;
+    }
+
+    if (await hasCompletedRegistration()) {
+      return false;
+    }
+
+    final businessId = await _resolveCurrentUserBusinessId();
+    if (businessId == null) return false;
+
+    final existing =
+        await _supabase
+            .from('business_names')
+            .select('uid, business_image')
+            .eq('uid', businessId)
+            .maybeSingle();
+
+    return existing != null && existing['business_image'] == null;
   }
 
   Future<void> submitBusinessRegistration({
@@ -338,6 +382,11 @@ class BusinessService {
       latitude: latitude,
       longitude: longitude,
       businessImageUrl: photoUrl,
+    );
+
+    await _saveCurrentUserBusinessId(
+      businessUid,
+      registrationStatus: 'submitted',
     );
   }
 
@@ -620,7 +669,7 @@ class BusinessService {
       }
 
       // Save business UID to user metadata for quick access
-      await _saveCurrentUserBusinessId(uid);
+      await _saveCurrentUserBusinessId(uid, registrationStatus: 'submitted');
     } catch (e) {
       throw Exception('Business registration failed: ${e.toString()}');
     }

@@ -13,6 +13,7 @@ import 'package:idiscount_website/pages/email_verification_page.dart';
 import 'package:idiscount_website/pages/register_page.dart';
 import 'package:idiscount_website/pages/dashboard_page.dart';
 import 'package:idiscount_website/services/register_route_gate.dart';
+import 'package:idiscount_website/services/business_service.dart';
 
 // theme
 import 'package:idiscount_website/theme/app_theme.dart';
@@ -89,15 +90,33 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/register',
-          redirect: (context, state) {
+          redirect: (context, state) async {
             final gateToken = state.uri.queryParameters['gate'];
-            if (!RegisterRouteGate.isValid(gateToken)) {
+            final user = Supabase.instance.client.auth.currentUser;
+            final hasGate = RegisterRouteGate.isValid(gateToken);
+
+            if (hasGate) {
+              if (user == null || user.emailConfirmedAt == null) {
+                return '/email-verification?email=&gate=$gateToken';
+              }
+              return null;
+            }
+
+            if (user == null) {
               return '/signup';
             }
-            final user = Supabase.instance.client.auth.currentUser;
-            if (user == null || user.emailConfirmedAt == null) {
-              return '/email-verification?email=&gate=$gateToken';
+
+            if (user.emailConfirmedAt == null) {
+              return '/signup';
             }
+
+            final hasCompletedRegistration =
+                await BusinessService().hasCompletedRegistration();
+
+            if (hasCompletedRegistration) {
+              return '/dashboard';
+            }
+
             return null;
           },
           builder: (context, state) {
@@ -106,11 +125,19 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/dashboard',
-          redirect: (context, state) {
+          redirect: (context, state) async {
             final user = Supabase.instance.client.auth.currentUser;
             if (user == null) {
               return '/signup';
             }
+
+            final hasCompletedRegistration =
+                await BusinessService().hasCompletedRegistration();
+
+            if (!hasCompletedRegistration) {
+              return '/register';
+            }
+
             return null;
           },
           builder: (context, state) {

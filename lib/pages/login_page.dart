@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
+import 'package:idiscount_website/services/business_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
@@ -33,7 +34,13 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (!mounted) return;
-        context.go('/dashboard', extra: _emailController.text);
+
+        final businessService = BusinessService();
+        final hasCompletedRegistration =
+            await businessService.hasCompletedRegistration();
+
+        if (!mounted) return;
+        context.go(hasCompletedRegistration ? '/dashboard' : '/register');
       } on AuthException catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
