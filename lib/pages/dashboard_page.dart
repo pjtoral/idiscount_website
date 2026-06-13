@@ -5,6 +5,7 @@ import 'package:idiscount_website/pages/widgets/dashboard_chrome.dart';
 import 'package:idiscount_website/pages/widgets/dashboard_sections.dart';
 import 'package:idiscount_website/viewmodels/dashboard_view_model.dart';
 import 'package:idiscount_website/pages/edit_business_dialog.dart';
+import 'package:idiscount_website/services/auth_service.dart';
 import 'package:idiscount_website/services/register_route_gate.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -18,6 +19,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   late final DashboardViewModel _viewModel;
+  final _authService = AuthService();
 
   DashboardBusinessInfo? get _businessInfo => _viewModel.businessInfo;
   Map<String, dynamic>? get _registrationRecord =>
@@ -95,10 +97,14 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       appBar: DashboardAppBar(
         userEmail: widget.userEmail,
-        onLogoutTap: () {
+        onLogoutTap: () async {
           showDashboardLogoutDialog(
             context,
-            onConfirmLogout: () => context.go('/login'),
+            onConfirmLogout: () async {
+              await _authService.signOut();
+              if (!mounted) return;
+              context.go('/login');
+            },
           );
         },
       ),

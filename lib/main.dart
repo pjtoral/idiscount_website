@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -31,12 +33,39 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final GoRouter router = GoRouter(
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier() {
+    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+      notifyListeners();
+    });
+  }
+
+  late final StreamSubscription<AuthState> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+class _MyAppState extends State<MyApp> {
+  late final _AuthRefreshNotifier _authRefreshNotifier;
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _authRefreshNotifier = _AuthRefreshNotifier();
+    _router = GoRouter(
+      refreshListenable: _authRefreshNotifier,
       routes: [
         GoRoute(path: '/', builder: (context, state) => const HeroPage()),
         GoRoute(
@@ -56,8 +85,6 @@ class MyApp extends StatelessWidget {
           path: '/email-verification',
           redirect: (context, state) {
             final gate = state.uri.queryParameters['gate'];
-            // For verification page, require only token presence so
-            // signup redirects work reliably within the same navigation flow.
             if (gate == null || gate.isEmpty) {
               return '/signup';
             }
@@ -147,12 +174,22 @@ class MyApp extends StatelessWidget {
         ),
       ],
     );
+  }
 
+  @override
+  void dispose() {
+    _router.dispose();
+    _authRefreshNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'IDiscount Philippines',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-      routerConfig: router,
+      routerConfig: _router,
     );
   }
 }

@@ -54,7 +54,7 @@ class DashboardWelcomeHeader extends StatelessWidget {
 
 Future<void> showDashboardLogoutDialog(
   BuildContext context, {
-  required VoidCallback onConfirmLogout,
+  required Future<void> Function() onConfirmLogout,
 }) {
   return showDialog<void>(
     context: context,
