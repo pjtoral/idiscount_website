@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:idiscount_website/services/app_error_service.dart';
 import 'package:idiscount_website/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:idiscount_website/services/register_route_gate.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
@@ -79,7 +80,7 @@ class _SignupPageState extends State<SignupPage> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/email-verification?email=${Uri.encodeComponent(email)}');
+        context.go(RegisterRouteGate.buildVerificationPath(email));
       }
     } catch (e) {
       if (e is AuthException && e.statusCode == '429') {

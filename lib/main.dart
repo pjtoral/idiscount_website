@@ -10,7 +10,6 @@ import 'package:idiscount_website/terms_and_condition/terms.dart';
 import 'package:idiscount_website/pages/login_page.dart';
 import 'package:idiscount_website/pages/signup_page.dart';
 import 'package:idiscount_website/pages/email_verification_page.dart';
-import 'package:idiscount_website/pages/error_verification.dart';
 import 'package:idiscount_website/pages/register_page.dart';
 import 'package:idiscount_website/pages/dashboard_page.dart';
 import 'package:idiscount_website/services/register_route_gate.dart';
@@ -54,25 +53,50 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/email-verification',
+          redirect: (context, state) {
+            final gate = state.uri.queryParameters['gate'];
+            // For verification page, require only token presence so
+            // signup redirects work reliably within the same navigation flow.
+            if (gate == null || gate.isEmpty) {
+              return '/signup';
+            }
+            return null;
+          },
           builder:
               (context, state) => EmailVerificationPage(
                 email: state.uri.queryParameters['email'],
+                gate: state.uri.queryParameters['gate'],
               ),
         ),
         GoRoute(
-          path: '/error-verification',
-          builder: (context, state) => const ErrorVerificationPage(),
+          path: '/email_verification',
+          redirect: (context, state) {
+            final gate = state.uri.queryParameters['gate'];
+            final email = state.uri.queryParameters['email'] ?? '';
+            if (gate == null || gate.isEmpty) {
+              return '/signup';
+            }
+            return RegisterRouteGate.buildVerificationPathWithToken(
+              email,
+              gate!,
+            );
+          },
+          builder:
+              (context, state) => EmailVerificationPage(
+                email: state.uri.queryParameters['email'],
+                gate: state.uri.queryParameters['gate'],
+              ),
         ),
         GoRoute(
           path: '/register',
           redirect: (context, state) {
-            final user = Supabase.instance.client.auth.currentUser;
             final gateToken = state.uri.queryParameters['gate'];
-            if (user == null || user.emailConfirmedAt == null) {
-              return '/error-verification';
-            }
             if (!RegisterRouteGate.isValid(gateToken)) {
-              return '/error-verification';
+              return '/signup';
+            }
+            final user = Supabase.instance.client.auth.currentUser;
+            if (user == null || user.emailConfirmedAt == null) {
+              return '/email-verification?email=&gate=$gateToken';
             }
             return null;
           },
@@ -82,6 +106,13 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/dashboard',
+          redirect: (context, state) {
+            final user = Supabase.instance.client.auth.currentUser;
+            if (user == null) {
+              return '/signup';
+            }
+            return null;
+          },
           builder: (context, state) {
             final user = Supabase.instance.client.auth.currentUser;
             return DashboardPage(userEmail: user?.email ?? 'user@example.com');

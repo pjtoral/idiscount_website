@@ -8,8 +8,10 @@ import 'package:idiscount_website/services/register_route_gate.dart';
 
 class EmailVerificationPage extends StatefulWidget {
   final String? email;
+  final String? gate;
 
-  const EmailVerificationPage({Key? key, this.email}) : super(key: key);
+  const EmailVerificationPage({Key? key, this.email, this.gate})
+    : super(key: key);
 
   @override
   State<EmailVerificationPage> createState() => _EmailVerificationPageState();
@@ -142,7 +144,12 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go(RegisterRouteGate.buildRegisterPath());
+        final gate = widget.gate;
+        if (gate != null && gate.isNotEmpty) {
+          context.go('/register?gate=$gate');
+        } else {
+          context.go('/signup');
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -41,7 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!mounted) return;
 
     if (loadState == DashboardLoadState.needsRegistration) {
-      context.go(RegisterRouteGate.buildRegisterPath());
+      context.go('/signup');
       return;
     }
 
